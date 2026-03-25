@@ -1,0 +1,56 @@
+name: publish-snapshots
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: python -m pip install pyyaml instavm
+      - run: python scripts/validate_manifests.py
+      - name: Build and publish published_snapshot cookbooks
+        run: |
+          python - <<'PY'
+          import subprocess
+          from pathlib import Path
+          import yaml
+
+          root = Path(".")
+          for manifest_path in sorted(root.glob("*/instavm.yaml")):
+              payload = yaml.safe_load(manifest_path.read_text())
+              if payload["deploy"]["kind"] != "published_snapshot":
+                  continue
+              image = payload["artifact"]["oci_image"]
+              context = payload["build"]["context"]
+              dockerfile = payload["build"]["dockerfile"]
+              snapshot_name = payload["artifact"]["snapshot_name"]
+              subprocess.run(["docker", "build", "-t", image, "-f", str(manifest_path.parent / dockerfile), str(manifest_path.parent / context)], check=True)
+              subprocess.run(["docker", "push", image], check=True)
+              subprocess.run([
+                  "instavm",
+                  "snapshot",
+                  "build",
+                  image,
+                  "--name",
+                  snapshot_name,
+                  "--type",
+                  "system",
+                  "--memory",
+                  str(payload["vm"]["memory_mb"]),
+                  "--vcpu",
+                  str(payload["vm"]["vcpu_count"]),
+              ], check=True)
+          PY
+        env:
+          INSTAVM_API_KEY: ${{ secrets.INSTAVM_API_KEY }}

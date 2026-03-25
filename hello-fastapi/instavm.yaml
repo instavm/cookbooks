@@ -1,0 +1,39 @@
+schema_version: 1
+slug: hello-fastapi
+title: Hello FastAPI
+version: "0.1.0"
+summary: Minimal FastAPI app to verify cookbook deploy, service startup, and public share creation.
+category: web
+runtime: python-fastapi
+deploy:
+  kind: upload_and_run
+vm:
+  memory_mb: 1024
+  vcpu_count: 1
+  timeout_seconds: 3600
+app:
+  port: 8000
+  healthcheck_path: /health
+  share_public_default: true
+  readiness_timeout_seconds: 90
+run:
+  workdir: .
+  start_command: python -m uvicorn app:app --host 0.0.0.0 --port 8000
+secrets: []
+post_deploy_notes:
+  - Open the share URL to verify the app is reachable.
+build:
+  context: .
+  dockerfile: Dockerfile
+artifact:
+  oci_image: docker.io/instavm/cookbooks-hello-fastapi:0.1.0
+  snapshot_name: cookbook/hello-fastapi:0.1.0
+  snapshot_visibility: public_system
+source:
+  include:
+    - app.py
+    - requirements.txt
+    - Dockerfile
+    - instavm.yaml
+  exclude: []
+  setup_command: python -m pip install --no-cache-dir -r requirements.txt

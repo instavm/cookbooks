@@ -1,0 +1,48 @@
+schema_version: 1
+slug: openai-agents-js-chat
+title: OpenAI Agents JS Chat
+version: "0.1.0"
+summary: Next.js streaming chat app adapted from the OpenAI Agents JS AI SDK UI example.
+category: agents
+runtime: node-nextjs
+deploy:
+  kind: upload_and_run
+vm:
+  memory_mb: 2048
+  vcpu_count: 2
+  timeout_seconds: 7200
+app:
+  port: 3000
+  healthcheck_path: /
+  share_public_default: true
+  readiness_timeout_seconds: 180
+run:
+  workdir: .
+  start_command: PORT=3000 npm start
+secrets:
+  - name: openai_api_key
+    required: true
+    prompt: OpenAI API key
+    env_name: OPENAI_API_KEY
+post_deploy_notes:
+  - Open the root page and send a prompt through the chat UI.
+build:
+  context: .
+  dockerfile: Dockerfile
+artifact:
+  oci_image: docker.io/instavm/cookbooks-openai-agents-js-chat:0.1.0
+  snapshot_name: cookbook/openai-agents-js-chat:0.1.0
+  snapshot_visibility: public_system
+source:
+  include:
+    - next-env.d.ts
+    - README.md
+    - package.json
+    - tsconfig.json
+    - next.config.ts
+    - scripts
+    - src
+    - instavm.yaml
+    - Dockerfile
+  exclude: []
+  setup_command: npm install && npm run build

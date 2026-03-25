@@ -1,0 +1,45 @@
+schema_version: 1
+slug: dspy-hosted-chat
+title: DSPy Hosted Chat
+version: "0.1.0"
+summary: DSPy chat starter wired to an OpenAI-compatible hosted endpoint instead of a local CPU-only model runtime.
+category: agents
+runtime: python-fastapi
+deploy:
+  kind: upload_and_run
+vm:
+  memory_mb: 2048
+  vcpu_count: 2
+  timeout_seconds: 7200
+app:
+  port: 8000
+  healthcheck_path: /health
+  share_public_default: true
+  readiness_timeout_seconds: 180
+run:
+  workdir: .
+  start_command: python -m uvicorn app:app --host 0.0.0.0 --port 8000
+secrets:
+  - name: openrouter_api_key
+    required: true
+    prompt: OpenRouter API key
+    env_name: OPENROUTER_API_KEY
+post_deploy_notes:
+  - This cookbook defaults to a hosted Gemma-family model instead of local inference.
+  - Override OPENAI_COMPAT_MODEL or OPENAI_COMPAT_API_BASE before deploy if you use a different provider.
+build:
+  context: .
+  dockerfile: Dockerfile
+artifact:
+  oci_image: docker.io/instavm/cookbooks-dspy-hosted-chat:0.1.0
+  snapshot_name: cookbook/dspy-hosted-chat:0.1.0
+  snapshot_visibility: public_system
+source:
+  include:
+    - app.py
+    - requirements.txt
+    - README.md
+    - Dockerfile
+    - instavm.yaml
+  exclude: []
+  setup_command: python -m pip install --no-cache-dir -r requirements.txt

@@ -1,0 +1,45 @@
+schema_version: 1
+slug: google-adk-web-chat
+title: Google ADK Web Chat
+version: "0.1.0"
+summary: Share-first Google ADK starter that turns the minimal agent example into a browser chat experience.
+category: agents
+runtime: python-fastapi
+deploy:
+  kind: upload_and_run
+vm:
+  memory_mb: 2048
+  vcpu_count: 2
+  timeout_seconds: 7200
+app:
+  port: 8000
+  healthcheck_path: /health
+  share_public_default: true
+  readiness_timeout_seconds: 180
+run:
+  workdir: .
+  start_command: python -m uvicorn app:app --host 0.0.0.0 --port 8000
+secrets:
+  - name: google_api_key
+    required: true
+    prompt: Google API key for Gemini
+    env_name: GOOGLE_API_KEY
+post_deploy_notes:
+  - Ask for itinerary, neighborhood, or travel planning help from the browser.
+  - Set GOOGLE_MODEL before deploy if you want a different Gemini model.
+build:
+  context: .
+  dockerfile: Dockerfile
+artifact:
+  oci_image: docker.io/instavm/cookbooks-google-adk-web-chat:0.1.0
+  snapshot_name: cookbook/google-adk-web-chat:0.1.0
+  snapshot_visibility: public_system
+source:
+  include:
+    - app.py
+    - requirements.txt
+    - README.md
+    - Dockerfile
+    - instavm.yaml
+  exclude: []
+  setup_command: python -m pip install --no-cache-dir -r requirements.txt
