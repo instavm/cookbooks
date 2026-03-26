@@ -21,7 +21,7 @@ interface Message {
 
 // Use relative URLs - Vite will proxy to the backend
 const API_BASE = "/api";
-const WS_URL = `ws://${window.location.hostname}:3001/ws`;
+const WS_URL = `${window.location.protocol === "https:" ? "wss" : "ws"}://${window.location.host}/ws`;
 
 export default function App() {
   const [chats, setChats] = useState<Chat[]>([]);

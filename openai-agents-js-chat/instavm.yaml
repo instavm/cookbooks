@@ -13,7 +13,7 @@ vm:
   timeout_seconds: 7200
 app:
   port: 3000
-  healthcheck_path: /
+  healthcheck_path: /health
   share_public_default: true
   readiness_timeout_seconds: 180
 run:
