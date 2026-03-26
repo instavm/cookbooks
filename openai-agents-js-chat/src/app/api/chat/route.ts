@@ -40,7 +40,7 @@ export async function POST(req: Request) {
   try {
     const stream = await run(activeAgent, input, {
       stream: true,
-      conversationId: entry.conversationId,
+      session: entry.session,
     });
     void stream.completed
       .then(() => {

@@ -1,5 +1,4 @@
 import { redirect } from 'next/navigation';
-import { OpenAIConversationsSession } from '@openai/agents-openai';
 import ChatView from '@/app/components/ChatView';
 import { toUiMessages } from '@/app/lib/messageConverters';
 import { createSession, findSession } from '@/app/lib/session';
@@ -38,10 +37,7 @@ export default async function Page({ searchParams }: PageProps) {
     redirect(`/?${SESSION_QUERY_KEY}=${fallbackSessionId}`);
   }
 
-  const session = new OpenAIConversationsSession({
-    conversationId: entry.conversationId,
-  });
-  const historyItems = await session.getItems(10);
+  const historyItems = await entry.session.getItems(10);
   const initialMessages = toUiMessages(historyItems);
 
   return (

@@ -39,7 +39,7 @@ export async function POST(req: Request) {
   const entry = await findOrCreateSession(sessionId);
   const stream = await run(textAgent, input, {
     stream: true,
-    conversationId: entry.conversationId,
+    session: entry.session,
   });
   return createAiSdkTextStreamResponse(stream);
 }

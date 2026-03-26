@@ -5,7 +5,6 @@
     "@ai-sdk/react": "^3.0.44",
     "@openai/agents": "^0.8.1",
     "@openai/agents-extensions": "^0.8.1",
-    "@openai/agents-openai": "^0.8.1",
     "ai": "^6.0.42",
     "next": "16.1.7",
     "react": "^19.2.3",

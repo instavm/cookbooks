@@ -1,7 +1,7 @@
-import { OpenAIConversationsSession } from '@openai/agents-openai';
+import { MemorySession } from '@openai/agents';
 
 export type SessionEntry = {
-  conversationId: string;
+  session: MemorySession;
   activeAgentName?: string;
 };
 
@@ -31,10 +31,9 @@ export async function createSession(
   sessionId: string,
   options: { activeAgentName?: string } = {},
 ): Promise<SessionEntry> {
-  const session = new OpenAIConversationsSession();
-  const conversationId = await session.getSessionId();
+  const session = new MemorySession({ sessionId });
   const entry: SessionEntry = {
-    conversationId,
+    session,
     activeAgentName: options.activeAgentName,
   };
   sessionStore.set(sessionId, entry);
