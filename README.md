@@ -17,6 +17,7 @@ python3 scripts/validate_manifests.py
 ## Included Starters
 
 - `hello-fastapi`: zero-key FastAPI smoke test for VM create, service start, and public share verification.
+- `neon-city-webgl`: fullscreen neon-dusk WebGL cityscape with procedural towers, reflective streets, and a looping robot pedestrian.
 - `claude-simple-chatapp`: React + Express chat UI adapted from the Claude Agent SDK demos repo.
 - `openai-agents-js-chat`: Next.js streaming chat UI adapted from the OpenAI Agents JS AI SDK UI example.
 - `openai-agents-python-research`: FastAPI research memo app inspired by the OpenAI Agents Python research examples.

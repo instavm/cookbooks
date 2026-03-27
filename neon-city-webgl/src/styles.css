@@ -1,0 +1,89 @@
+:root {
+  color-scheme: dark;
+  font-family: "Space Grotesk", "Avenir Next", "Segoe UI", sans-serif;
+  background: #04050c;
+}
+
+html,
+body,
+#root {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  overflow: hidden;
+  background:
+    radial-gradient(circle at top, rgba(255, 77, 157, 0.12), transparent 28%),
+    radial-gradient(circle at bottom, rgba(4, 217, 255, 0.12), transparent 34%),
+    #04050c;
+}
+
+canvas {
+  display: block;
+}
+
+.app-shell {
+  width: 100%;
+  height: 100%;
+  position: relative;
+}
+
+.loading-overlay {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: radial-gradient(circle, rgba(5, 7, 17, 0.5), rgba(4, 5, 12, 0.96));
+  transition: opacity 600ms ease, visibility 600ms ease;
+  pointer-events: none;
+}
+
+.loading-overlay--visible {
+  opacity: 1;
+  visibility: visible;
+}
+
+.loading-overlay--hidden {
+  opacity: 0;
+  visibility: hidden;
+}
+
+.loading-card {
+  width: min(440px, calc(100vw - 48px));
+  padding: 24px 24px 20px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(8, 10, 20, 0.78);
+  box-shadow: 0 20px 120px rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(18px);
+}
+
+.loading-title {
+  font-size: clamp(1.8rem, 4vw, 3rem);
+  line-height: 1;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #f7f7fb;
+}
+
+.loading-copy {
+  margin-top: 12px;
+  color: rgba(236, 240, 255, 0.78);
+  font-size: 0.96rem;
+}
+
+.loading-meter {
+  margin-top: 18px;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+
+.loading-meter span {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, #04d9ff, #7c5cff, #ff4d9d);
+  box-shadow: 0 0 24px rgba(4, 217, 255, 0.55);
+}

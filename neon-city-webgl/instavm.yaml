@@ -1,0 +1,47 @@
+schema_version: 1
+slug: neon-city-webgl
+title: Neon City WebGL
+version: "0.1.0"
+summary: Fullscreen neon-dusk cityscape with procedural towers, reflective streets, animated traffic, and a looping robot pedestrian.
+category: graphics
+runtime: node-vite-r3f
+deploy:
+  kind: upload_and_run
+vm:
+  memory_mb: 2048
+  vcpu_count: 2
+  timeout_seconds: 7200
+app:
+  port: 3000
+  healthcheck_path: /health
+  share_public_default: true
+  readiness_timeout_seconds: 180
+run:
+  workdir: .
+  start_command: node server.mjs
+secrets: []
+post_deploy_notes:
+  - Open the share URL in a desktop browser and let the city run fullscreen.
+  - The scene is entirely browser-rendered and should animate continuously without input.
+build:
+  context: .
+  dockerfile: Dockerfile
+artifact:
+  oci_image: docker.io/instavm/cookbooks-neon-city-webgl:0.1.0
+  snapshot_name: cookbook/neon-city-webgl:0.1.0
+  snapshot_visibility: public_system
+source:
+  include:
+    - Dockerfile
+    - README.md
+    - index.html
+    - instavm.yaml
+    - package-lock.json
+    - package.json
+    - public
+    - server.mjs
+    - src
+    - tsconfig.json
+    - vite.config.ts
+  exclude: []
+  setup_command: npm ci && npm run build
