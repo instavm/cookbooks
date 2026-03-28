@@ -18,7 +18,11 @@ app:
   readiness_timeout_seconds: 180
 run:
   workdir: .
-  start_command: PORT=3001 npm start
+  start_command: >-
+    export NVM_DIR="$HOME/.nvm" &&
+    . "$NVM_DIR/nvm.sh" &&
+    nvm use 22 >/dev/null &&
+    PORT=3001 npm start
 secrets:
   - name: anthropic_api_key
     required: true
@@ -48,4 +52,13 @@ source:
     - instavm.yaml
     - Dockerfile
   exclude: []
-  setup_command: npm install && npm run build
+  setup_command: >-
+    export NVM_DIR="$HOME/.nvm" &&
+    if [ ! -s "$NVM_DIR/nvm.sh" ]; then
+      curl -fsSL https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash;
+    fi &&
+    . "$NVM_DIR/nvm.sh" &&
+    nvm install 22 &&
+    nvm use 22 &&
+    npm install &&
+    npm run build

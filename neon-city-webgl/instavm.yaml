@@ -18,7 +18,11 @@ app:
   readiness_timeout_seconds: 180
 run:
   workdir: .
-  start_command: node server.mjs
+  start_command: >-
+    export NVM_DIR="$HOME/.nvm" &&
+    . "$NVM_DIR/nvm.sh" &&
+    nvm use 22 >/dev/null &&
+    node server.mjs
 secrets: []
 post_deploy_notes:
   - Open the share URL in a desktop browser and let the city run fullscreen.
@@ -44,4 +48,13 @@ source:
     - tsconfig.json
     - vite.config.ts
   exclude: []
-  setup_command: npm ci && npm run build
+  setup_command: >-
+    export NVM_DIR="$HOME/.nvm" &&
+    if [ ! -s "$NVM_DIR/nvm.sh" ]; then
+      curl -fsSL https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash;
+    fi &&
+    . "$NVM_DIR/nvm.sh" &&
+    nvm install 22 &&
+    nvm use 22 &&
+    npm ci &&
+    npm run build
