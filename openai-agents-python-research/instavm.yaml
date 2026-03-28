@@ -1,8 +1,8 @@
 schema_version: 1
 slug: openai-agents-python-research
-title: OpenAI Agents Python Research
+title: Research Desk
 version: "0.1.0"
-summary: Browser-based research memo generator adapted from the OpenAI Agents Python research examples.
+summary: Research workspace that turns a prompt into a concise briefing with supporting notes.
 category: agents
 runtime: python-fastapi
 deploy:

@@ -20,9 +20,9 @@ export default function TextStreamChatClient({
 
   return (
     <ChatView
-      title="AI SDK UI Text Stream"
-      description="Text-only UI rendering using the Agents SDK text stream adapter."
-      placeholder="Ask about the night sky..."
+      title="Sky Guide Lite"
+      description="A text-first version of the same assistant for faster, simpler chat."
+      placeholder="Ask about tonight's best constellations..."
       sessionId={sessionId}
       initialMessages={initialMessages}
       transport={transport}

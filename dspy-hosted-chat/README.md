@@ -1,5 +1,5 @@
-# DSPy Hosted Chat
+# DSPy Chat
 
-DSPy chat app powered by a hosted model.
+Structured browser chat powered by DSPy.
 
-By default it uses a compact Gemma-family model through OpenRouter, and you can override the provider URL or model name if you want a different setup.
+The default deployment uses OpenRouter with a compact Gemma-family model. You can switch models or compatible providers with environment variables before deploy.

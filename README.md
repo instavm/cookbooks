@@ -1,6 +1,6 @@
 # InstaVM Cookbooks
 
-Public starter apps for `instavm cookbook deploy`.
+A public catalog of apps and experiences you can deploy with `instavm cookbook deploy`.
 
 Each cookbook lives at the repo root:
 
@@ -14,15 +14,15 @@ Each cookbook lives at the repo root:
 python3 scripts/validate_manifests.py
 ```
 
-## Included Starters
+## Included Apps
 
-- `hello-fastapi`: zero-key FastAPI smoke test for VM create, service start, and public share verification.
-- `neon-city-webgl`: fullscreen neon-dusk WebGL cityscape with procedural towers, reflective streets, and a looping robot pedestrian.
-- `claude-simple-chatapp`: React + Express chat UI adapted from the Claude Agent SDK demos repo.
-- `openai-agents-js-chat`: Next.js streaming chat UI adapted from the OpenAI Agents JS AI SDK UI example.
-- `openai-agents-python-research`: FastAPI research memo app inspired by the OpenAI Agents Python research examples.
-- `google-adk-web-chat`: browser-first Google ADK starter derived from the minimal ADK example shape.
-- `dspy-hosted-chat`: DSPy chat app with a hosted model and a compact Gemma-family default via OpenRouter.
+- `hello-fastapi`: a simple FastAPI app with a hello page and health endpoint.
+- `neon-city-webgl`: immersive fullscreen WebGL cityscape with procedural towers and a looping robot pedestrian.
+- `claude-simple-chatapp`: browser chat for Claude with a React frontend and live conversation threads.
+- `openai-agents-js-chat`: streaming browser chat with tool calls, reasoning, and support handoffs.
+- `openai-agents-python-research`: research desk that turns a prompt into a concise briefing with supporting notes.
+- `google-adk-web-chat`: travel-focused city guide chat for itineraries, neighborhoods, and timing advice.
+- `dspy-hosted-chat`: structured DSPy chat that replies with a concise answer and a sharp follow-up question.
 
 ## Deploy Contract
 
@@ -49,7 +49,7 @@ Required top-level keys:
 - `published_snapshot`
 - `upload_and_run`
 
-Runtime secrets are injected as environment variables only. They are not stored in the cookbook repo.
+Runtime secrets are injected as environment variables at deploy time. They are not stored in this repo.
 
 ## Publishing
 

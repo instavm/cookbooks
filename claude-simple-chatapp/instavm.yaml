@@ -1,8 +1,8 @@
 schema_version: 1
 slug: claude-simple-chatapp
-title: Claude Simple Chat App
+title: Claude Chat
 version: "0.1.0"
-summary: React and Express chat interface adapted from the Claude Agent SDK demos repo for quick public sharing.
+summary: Browser chat for Claude with a clean interface and live conversation threads.
 category: agents
 runtime: node-express-react
 deploy:

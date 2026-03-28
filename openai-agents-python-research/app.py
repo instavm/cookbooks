@@ -28,7 +28,7 @@ writer_agent = Agent(
     ),
 )
 
-app = FastAPI(title="OpenAI Agents Research")
+app = FastAPI(title="Research Desk")
 
 
 class ReportRequest(BaseModel):
@@ -40,7 +40,7 @@ HTML = """<!doctype html>
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>OpenAI Agents Research</title>
+    <title>Research Desk</title>
     <style>
       :root {
         color-scheme: light;
@@ -116,12 +116,12 @@ HTML = """<!doctype html>
   </head>
   <body>
     <main>
-      <h1>OpenAI Agents Research</h1>
-      <p>Ask for a market brief, company update, product scan, or technical summary. This starter uses a search-heavy analyst pass and a writer pass before publishing the result.</p>
+      <h1>Research Desk</h1>
+      <p>Ask for a market brief, company update, product scan, or technical summary. The app gathers supporting notes and turns them into a concise memo.</p>
       <div class="meta">
-        <span class="chip">OpenAI Agents SDK</span>
+        <span class="chip">OpenAI Agents</span>
         <span class="chip">Web search grounded</span>
-        <span class="chip">Share-ready on port 8000</span>
+        <span class="chip">Briefing generator</span>
       </div>
       <section class="panel">
         <label for="query"><strong>Research prompt</strong></label>

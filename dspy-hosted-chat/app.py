@@ -29,7 +29,7 @@ class ChatProgram(dspy.Module):
         return self.respond(question=question)
 
 
-app = FastAPI(title="DSPy Hosted Chat")
+app = FastAPI(title="DSPy Chat")
 
 
 class ChatRequest(BaseModel):
@@ -42,7 +42,7 @@ HTML = """<!doctype html>
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>DSPy Hosted Chat</title>
+    <title>DSPy Chat</title>
     <style>
       :root {
         color-scheme: light;
@@ -121,12 +121,12 @@ HTML = """<!doctype html>
   </head>
   <body>
     <main>
-      <h1>DSPy Hosted Chat</h1>
-      <p>DSPy chat app powered by a hosted model. By default it uses a compact Gemma-family model through OpenRouter, and you can switch models or providers with environment variables.</p>
+      <h1>DSPy Chat</h1>
+      <p>Ask for product strategy, positioning, or tradeoff advice. Replies come back as a concise answer plus one sharp follow-up question.</p>
       <div class="chips">
         <span class="chip">DSPy</span>
-        <span class="chip">Hosted model</span>
-        <span class="chip">Gemma default</span>
+        <span class="chip">Structured replies</span>
+        <span class="chip">Gemma-family default</span>
       </div>
       <section class="panel">
         <div id="thread"></div>

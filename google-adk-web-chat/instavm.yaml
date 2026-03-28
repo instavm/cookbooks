@@ -1,8 +1,8 @@
 schema_version: 1
 slug: google-adk-web-chat
-title: Google ADK Web Chat
+title: City Guide
 version: "0.1.0"
-summary: Share-first Google ADK starter that turns the minimal agent example into a browser chat experience.
+summary: Travel planning chat for itineraries, neighborhoods, and timing advice.
 category: agents
 runtime: python-fastapi
 deploy:

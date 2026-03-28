@@ -1,5 +1,5 @@
-# OpenAI Agents Python Research
+# Research Desk
 
-Share-ready research briefing app inspired by the OpenAI Agents Python research examples.
+Research workspace that turns a prompt into a concise briefing with supporting notes.
 
-It runs a search-heavy analyst pass first, then a writer pass that turns the notes into a concise markdown memo for a browser UI.
+Use it for market scans, company updates, technical summaries, and quick competitive briefs.

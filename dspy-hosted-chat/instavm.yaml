@@ -1,8 +1,8 @@
 schema_version: 1
 slug: dspy-hosted-chat
-title: DSPy Hosted Chat
+title: DSPy Chat
 version: "0.1.0"
-summary: DSPy chat app with a hosted model and a compact Gemma-family default via OpenRouter.
+summary: Structured browser chat powered by DSPy.
 category: agents
 runtime: python-fastapi
 deploy:
@@ -25,7 +25,7 @@ secrets:
     prompt: OpenRouter API key
     env_name: OPENROUTER_API_KEY
 post_deploy_notes:
-  - By default this cookbook uses a compact Gemma-family model through OpenRouter.
+  - By default the app uses a compact Gemma-family model through OpenRouter.
   - Set OPENAI_COMPAT_MODEL or OPENAI_COMPAT_API_BASE before deploy to use a different model or provider.
 build:
   context: .

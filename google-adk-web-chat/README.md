@@ -1,5 +1,5 @@
-# Google ADK Web Chat
+# City Guide
 
-Share-ready web chat starter derived from the Google ADK minimal agent example and adapted for InstaVM deployment.
+Travel planning chat powered by Gemini and the Google ADK.
 
-It keeps the runtime lightweight while still exercising the ADK runner, session service, and tool wiring.
+Use it to sketch itineraries, compare neighborhoods, and time meetings across cities.

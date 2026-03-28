@@ -5,7 +5,7 @@ app = FastAPI(title="InstaVM Hello FastAPI")
 
 @app.get("/")
 def index() -> dict[str, str]:
-    return {"message": "Hello from InstaVM cookbooks"}
+    return {"message": "Hello from InstaVM"}
 
 
 @app.get("/health")

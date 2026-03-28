@@ -2,7 +2,7 @@ schema_version: 1
 slug: hello-fastapi
 title: Hello FastAPI
 version: "0.1.0"
-summary: Minimal FastAPI app to verify cookbook deploy, service startup, and public share creation.
+summary: Simple FastAPI app with a hello page and health endpoint.
 category: web
 runtime: python-fastapi
 deploy:

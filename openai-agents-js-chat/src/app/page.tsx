@@ -42,9 +42,9 @@ export default async function Page({ searchParams }: PageProps) {
 
   return (
     <ChatView
-      title="AI SDK UI Data Stream"
-      description="UI message streaming backed by the Agents SDK, including tool calls and reasoning parts."
-      placeholder="Ask about the night sky..."
+      title="Sky Guide"
+      description="Ask about the night sky, weather conditions, or account issues. The assistant can use tools and hand off support questions when needed."
+      placeholder="Ask about tonight's best constellations..."
       sessionId={sessionId}
       initialMessages={initialMessages}
     />

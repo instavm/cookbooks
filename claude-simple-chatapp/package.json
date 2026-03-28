@@ -2,7 +2,7 @@
   "name": "claude-simple-chatapp",
   "version": "1.0.0",
   "type": "module",
-  "description": "A share-ready Claude Agent SDK chat app for InstaVM cookbooks",
+  "description": "Browser chat experience for Claude",
   "scripts": {
     "dev": "concurrently \"npm run dev:server\" \"npm run dev:client\"",
     "dev:server": "tsx watch server/server.ts",

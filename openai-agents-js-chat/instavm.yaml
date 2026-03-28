@@ -1,8 +1,8 @@
 schema_version: 1
 slug: openai-agents-js-chat
-title: OpenAI Agents JS Chat
+title: Sky Guide Chat
 version: "0.1.0"
-summary: Next.js streaming chat app adapted from the OpenAI Agents JS AI SDK UI example.
+summary: Streaming browser chat about the night sky with tool calls and support handoffs.
 category: agents
 runtime: node-nextjs
 deploy:

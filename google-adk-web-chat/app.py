@@ -57,7 +57,7 @@ root_agent = Agent(
     tools=[get_weather, get_current_time],
 )
 
-app = FastAPI(title="Google ADK Web Chat")
+app = FastAPI(title="City Guide")
 
 
 class Message(BaseModel):
@@ -75,7 +75,7 @@ HTML = """<!doctype html>
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Google ADK Web Chat</title>
+    <title>City Guide</title>
     <style>
       :root {
         color-scheme: light;
@@ -154,12 +154,12 @@ HTML = """<!doctype html>
   </head>
   <body>
     <main>
-      <h1>Google ADK Web Chat</h1>
-      <p>Ask this starter to plan a city break, compare neighborhoods, or sketch a lightweight travel brief. It uses the Google ADK runner path with small helper tools for time and weather context.</p>
+      <h1>City Guide</h1>
+      <p>Plan a city break, compare neighborhoods, or sketch a practical travel brief with time and weather context when it helps.</p>
       <div class="chips">
-        <span class="chip">Google ADK</span>
-        <span class="chip">Gemini-backed</span>
-        <span class="chip">FastAPI share-ready</span>
+        <span class="chip">Gemini</span>
+        <span class="chip">Travel planning</span>
+        <span class="chip">Time and weather cues</span>
       </div>
       <section class="panel">
         <div id="thread"></div>

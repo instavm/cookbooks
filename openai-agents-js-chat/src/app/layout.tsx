@@ -1,8 +1,8 @@
 import type { ReactNode } from 'react';
 
 export const metadata = {
-  title: 'AI SDK UI Streams',
-  description: 'Agents SDK streaming UI with data and text stream examples.',
+  title: 'Sky Guide Chat',
+  description: 'Streaming browser chat with tool calls and support handoffs.',
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
