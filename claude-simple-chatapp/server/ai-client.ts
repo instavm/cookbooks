@@ -1,4 +1,6 @@
 import { query } from "@anthropic-ai/claude-agent-sdk";
+import path from "path";
+import { fileURLToPath } from "url";
 
 const SYSTEM_PROMPT = `You are a helpful AI assistant. You can help users with a wide variety of tasks including:
 - Answering questions
@@ -13,6 +15,10 @@ type UserMessage = {
   type: "user";
   message: { role: "user"; content: string };
 };
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const CLAUDE_CODE_WRAPPER = path.join(__dirname, "claude-code-wrapper.mjs");
 
 // Simple async queue - messages go in via push(), come out via async iteration
 class MessageQueue {
@@ -80,6 +86,7 @@ export class AgentSession {
           "WebFetch",
         ],
         systemPrompt: SYSTEM_PROMPT,
+        pathToClaudeCodeExecutable: CLAUDE_CODE_WRAPPER,
       },
     })[Symbol.asyncIterator]();
   }
