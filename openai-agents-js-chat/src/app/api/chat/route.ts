@@ -4,7 +4,10 @@ import type { UIMessage } from 'ai';
 
 import { agent, customerSupportAgent } from './agents';
 import { toAgentInput } from '@/app/lib/messageConverters';
-import { normalizeOpenAIProviderError } from '@/app/lib/providerErrors';
+import {
+  looksLikePlaceholderSecret,
+  normalizeOpenAIProviderError,
+} from '@/app/lib/providerErrors';
 import { findOrCreateSession, saveSession } from '@/app/lib/session';
 
 const agentRegistry = new Map<string, Agent<any, any>>([
@@ -30,6 +33,12 @@ export async function POST(req: Request) {
 
   if (input.length === 0) {
     return new Response('Missing messages.', { status: 400 });
+  }
+  if (looksLikePlaceholderSecret(process.env.OPENAI_API_KEY)) {
+    return new Response(
+      'OpenAI credentials are invalid or missing for this deployment. Add a valid OPENAI_API_KEY and redeploy.',
+      { status: 500 },
+    );
   }
 
   const entry = await findOrCreateSession(sessionId, {

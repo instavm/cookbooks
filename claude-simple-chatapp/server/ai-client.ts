@@ -20,6 +20,16 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const CLAUDE_CODE_WRAPPER = path.join(__dirname, "claude-code-wrapper.mjs");
 
+function looksLikePlaceholderSecret(value: string | undefined): boolean {
+  const normalized = (value || "").trim().toLowerCase();
+  if (!normalized) {
+    return true;
+  }
+  return ["dummy", "test", "placeholder", "your_key", "your-api-key", "changeme", "example"].some(
+    (marker) => normalized.includes(marker),
+  );
+}
+
 export function normalizeClaudeError(error: unknown): string {
   const message = error instanceof Error && error.message.trim()
     ? error.message.trim()
@@ -96,6 +106,9 @@ export class AgentSession {
   private outputIterator: AsyncIterator<any> | null = null;
 
   constructor() {
+    if (looksLikePlaceholderSecret(process.env.ANTHROPIC_API_KEY)) {
+      throw new Error("Claude credentials are invalid or missing for this deployment. Add a valid ANTHROPIC_API_KEY and redeploy.");
+    }
     // Start the query immediately with the queue as input
     // Cast to any - SDK accepts simpler message format at runtime
     this.outputIterator = query({

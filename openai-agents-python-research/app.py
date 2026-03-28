@@ -11,6 +11,16 @@ from pydantic import BaseModel
 MODEL_NAME = os.environ.get("OPENAI_MODEL", "gpt-4.1-mini")
 REQUEST_TIMEOUT_SECONDS = 60
 
+
+def looks_like_placeholder_secret(value: str) -> bool:
+    normalized = value.strip().lower()
+    if not normalized:
+        return True
+    return any(
+        marker in normalized
+        for marker in ("dummy", "test", "placeholder", "your_key", "your-api-key", "changeme", "example")
+    )
+
 research_agent = Agent(
     name="research_analyst",
     model=MODEL_NAME,
@@ -298,6 +308,11 @@ HTML = """<!doctype html>
 
 
 async def build_report(query: str) -> dict[str, str]:
+    api_key = (os.environ.get("OPENAI_API_KEY") or "").strip()
+    if not api_key:
+        raise RuntimeError("OPENAI_API_KEY is required.")
+    if looks_like_placeholder_secret(api_key):
+        raise RuntimeError("OPENAI_API_KEY is invalid or still set to a placeholder value.")
     notes_result = await Runner.run(
         research_agent,
         (

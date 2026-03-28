@@ -13,6 +13,16 @@ MODEL_NAME = os.environ.get("OPENAI_COMPAT_MODEL", "openai/google/gemma-3n-e4b-i
 REQUEST_TIMEOUT_SECONDS = 45
 
 
+def looks_like_placeholder_secret(value: str) -> bool:
+    normalized = value.strip().lower()
+    if not normalized:
+        return True
+    return any(
+        marker in normalized
+        for marker in ("dummy", "test", "placeholder", "your_key", "your-api-key", "changeme", "example")
+    )
+
+
 class StructuredChat(dspy.Signature):
     """Respond with a concise answer and one sharp follow-up question."""
 
@@ -334,6 +344,8 @@ def configure_lm() -> None:
     api_key = (os.environ.get("OPENROUTER_API_KEY") or "").strip()
     if not api_key:
         raise RuntimeError("OPENROUTER_API_KEY is required.")
+    if looks_like_placeholder_secret(api_key):
+        raise RuntimeError("OPENROUTER_API_KEY is invalid or still set to a placeholder value.")
     lm = dspy.LM(MODEL_NAME, api_key=api_key, api_base=API_BASE)
     dspy.configure(lm=lm)
 

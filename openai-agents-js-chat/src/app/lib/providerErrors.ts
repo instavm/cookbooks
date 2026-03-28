@@ -5,6 +5,22 @@ function asMessage(error: unknown): string {
   return String(error || '').trim();
 }
 
+export function looksLikePlaceholderSecret(value: string | undefined): boolean {
+  const normalized = (value || '').trim().toLowerCase();
+  if (!normalized) {
+    return true;
+  }
+  return [
+    'dummy',
+    'test',
+    'placeholder',
+    'your_key',
+    'your-api-key',
+    'changeme',
+    'example',
+  ].some((marker) => normalized.includes(marker));
+}
+
 export function normalizeOpenAIProviderError(error: unknown): string {
   const message = asMessage(error);
   const lower = message.toLowerCase();

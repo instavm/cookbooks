@@ -3,7 +3,10 @@ import { createAiSdkTextStreamResponse } from '@openai/agents-extensions/ai-sdk-
 import type { UIMessage } from 'ai';
 
 import { toAgentInput } from '@/app/lib/messageConverters';
-import { normalizeOpenAIProviderError } from '@/app/lib/providerErrors';
+import {
+  looksLikePlaceholderSecret,
+  normalizeOpenAIProviderError,
+} from '@/app/lib/providerErrors';
 import { findOrCreateSession } from '@/app/lib/session';
 
 const textAgent = new Agent({
@@ -35,6 +38,12 @@ export async function POST(req: Request) {
 
   if (input.length === 0) {
     return new Response('Missing messages.', { status: 400 });
+  }
+  if (looksLikePlaceholderSecret(process.env.OPENAI_API_KEY)) {
+    return new Response(
+      'OpenAI credentials are invalid or missing for this deployment. Add a valid OPENAI_API_KEY and redeploy.',
+      { status: 500 },
+    );
   }
 
   try {

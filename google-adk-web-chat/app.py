@@ -22,6 +22,16 @@ APP_NAME = "instavm-google-adk-web-chat"
 REQUEST_TIMEOUT_SECONDS = 45
 
 
+def looks_like_placeholder_secret(value: str) -> bool:
+    normalized = value.strip().lower()
+    if not normalized:
+        return True
+    return any(
+        marker in normalized
+        for marker in ("dummy", "test", "placeholder", "your_key", "your-api-key", "changeme", "example")
+    )
+
+
 def get_weather(location: str) -> str:
     city = location.lower().strip()
     if "tokyo" in city:
@@ -360,6 +370,11 @@ def render_history(history: list[Message], latest: str) -> str:
 
 
 async def run_agent(message: str, history: list[Message]) -> str:
+    api_key = (os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY") or "").strip()
+    if not api_key:
+        raise RuntimeError("GOOGLE_API_KEY is required.")
+    if looks_like_placeholder_secret(api_key):
+        raise RuntimeError("GOOGLE_API_KEY is invalid or still set to a placeholder value.")
     session_service = InMemorySessionService()
     session_id = uuid.uuid4().hex
     await session_service.create_session(app_name=APP_NAME, user_id="web-user", session_id=session_id)
