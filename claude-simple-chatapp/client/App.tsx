@@ -26,6 +26,7 @@ export default function App() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const socketRef = useRef<WebSocket | null>(null);
   const reconnectTimerRef = useRef<number | null>(null);
   const selectedChatRef = useRef<string | null>(null);
@@ -38,6 +39,7 @@ export default function App() {
         break;
 
       case "history":
+        setErrorMessage(null);
         setMessages(message.messages || []);
         break;
 
@@ -84,6 +86,7 @@ export default function App() {
       case "error":
         console.error("Server error:", message.error);
         setIsLoading(false);
+        setErrorMessage(typeof message.error === "string" ? message.error : "The request failed.");
         break;
     }
   }, []);
@@ -141,6 +144,7 @@ export default function App() {
     selectedChatRef.current = chatId;
     setMessages([]);
     setIsLoading(false);
+    setErrorMessage(null);
 
     sendJsonMessage({ type: "subscribe", chatId });
   };
@@ -161,6 +165,7 @@ export default function App() {
     ]);
 
     setIsLoading(true);
+    setErrorMessage(null);
 
     // Send via WebSocket
     sendJsonMessage({
@@ -260,13 +265,14 @@ export default function App() {
       </div>
 
       {/* Main chat area */}
-      <ChatWindow
-        chatId={selectedChatId}
-        messages={messages}
-        isConnected={isConnected}
-        isLoading={isLoading}
-        onSendMessage={handleSendMessage}
-      />
+        <ChatWindow
+          chatId={selectedChatId}
+          messages={messages}
+          isConnected={isConnected}
+          isLoading={isLoading}
+          errorMessage={errorMessage}
+          onSendMessage={handleSendMessage}
+        />
     </div>
   );
 }

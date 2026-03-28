@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import os
 
 from agents import Agent, Runner, WebSearchTool
@@ -8,6 +9,7 @@ from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
 
 MODEL_NAME = os.environ.get("OPENAI_MODEL", "gpt-4.1-mini")
+REQUEST_TIMEOUT_SECONDS = 60
 
 research_agent = Agent(
     name="research_analyst",
@@ -29,6 +31,24 @@ writer_agent = Agent(
 )
 
 app = FastAPI(title="Research Desk")
+
+
+def friendly_provider_error(exc: Exception) -> str:
+    message = str(exc).strip()
+    lower = message.lower()
+    if (
+        "api key" in lower
+        or "authentication" in lower
+        or "unauthorized" in lower
+        or "missing authentication" in lower
+        or "invalid" in lower and "key" in lower
+    ):
+        return "OpenAI credentials are invalid or missing for this deployment. Add a valid OPENAI_API_KEY and redeploy."
+    if "timeout" in lower or "timed out" in lower:
+        return "OpenAI took too long to respond. Try again in a moment."
+    if "server disconnected" in lower or "connection" in lower or "proxy error" in lower:
+        return "OpenAI closed the request before returning a response. Verify the deployment credentials and try again."
+    return "The OpenAI request failed for this deployment. Verify the configured credentials and try again."
 
 
 class ReportRequest(BaseModel):
@@ -232,11 +252,14 @@ HTML = """<!doctype html>
         report.className = "shimmer";
         briefingPanel.classList.add("loading");
         notesPanel.classList.add("loading");
+        const controller = new AbortController();
+        const timeoutId = window.setTimeout(() => controller.abort(), 60000);
         try {
           const response = await fetch("/api/report", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ query: query.value }),
+            signal: controller.signal,
           });
           const payload = await response.json();
           if (!response.ok) {
@@ -255,9 +278,14 @@ HTML = """<!doctype html>
           report.className = "";
           briefingPanel.classList.remove("loading");
           notesPanel.classList.remove("loading");
-          status.textContent = String(error);
+          if (error instanceof DOMException && error.name === "AbortError") {
+            status.textContent = "OpenAI took too long to respond. Try again.";
+          } else {
+            status.textContent = error instanceof Error ? error.message : String(error);
+          }
           dot.classList.remove("active");
         } finally {
+          window.clearTimeout(timeoutId);
           run.disabled = false;
         }
       }
@@ -305,7 +333,12 @@ async def create_report(request: ReportRequest) -> dict[str, str]:
     if not query:
         raise HTTPException(status_code=400, detail="Query is required.")
     try:
-        payload = await build_report(query)
+        payload = await asyncio.wait_for(build_report(query), timeout=REQUEST_TIMEOUT_SECONDS)
+    except TimeoutError as exc:
+        raise HTTPException(
+            status_code=504,
+            detail="OpenAI took too long to respond. Try again in a moment.",
+        ) from exc
     except Exception as exc:  # noqa: BLE001
-        raise HTTPException(status_code=502, detail=f"Research run failed: {exc}") from exc
+        raise HTTPException(status_code=502, detail=friendly_provider_error(exc)) from exc
     return {"query": query, **payload}

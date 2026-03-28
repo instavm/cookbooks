@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import datetime as dt
+import asyncio
 import os
 import uuid
 from zoneinfo import ZoneInfo
@@ -18,6 +19,7 @@ if os.environ.get("GOOGLE_API_KEY") and not os.environ.get("GEMINI_API_KEY"):
 
 MODEL_NAME = os.environ.get("GOOGLE_MODEL", "gemini-2.5-flash")
 APP_NAME = "instavm-google-adk-web-chat"
+REQUEST_TIMEOUT_SECONDS = 45
 
 
 def get_weather(location: str) -> str:
@@ -58,6 +60,26 @@ root_agent = Agent(
 )
 
 app = FastAPI(title="City Guide")
+
+
+def friendly_provider_error(exc: Exception) -> str:
+    message = str(exc).strip()
+    lower = message.lower()
+    if (
+        "api key" in lower
+        or "api_key" in lower
+        or "gemini_api_key" in lower
+        or "unauthenticated" in lower
+        or "permission denied" in lower
+        or "invalid" in lower and "key" in lower
+        or "authentication" in lower
+    ):
+        return "Gemini credentials are invalid or missing for this deployment. Add a valid GOOGLE_API_KEY and redeploy."
+    if "timeout" in lower or "timed out" in lower:
+        return "Gemini took too long to respond. Try again in a moment."
+    if "server disconnected" in lower or "connection" in lower or "proxy error" in lower:
+        return "Gemini closed the request before returning a response. Verify the deployment credentials and try again."
+    return "The Gemini request failed for this deployment. Verify the configured credentials and try again."
 
 
 class Message(BaseModel):
@@ -287,11 +309,14 @@ HTML = """<!doctype html>
         status.textContent = "Thinking\u2026";
         typing.classList.add("active");
 
+        const controller = new AbortController();
+        const timeoutId = window.setTimeout(() => controller.abort(), 45000);
         try {
           const response = await fetch("/api/chat", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ message: content, history: history }),
+            signal: controller.signal,
           });
           const payload = await response.json();
           if (!response.ok) {
@@ -303,8 +328,13 @@ HTML = """<!doctype html>
           status.textContent = "Ready.";
         } catch (error) {
           typing.classList.remove("active");
-          status.textContent = String(error);
+          if (error instanceof DOMException && error.name === "AbortError") {
+            status.textContent = "Gemini took too long to respond. Try again.";
+          } else {
+            status.textContent = error instanceof Error ? error.message : String(error);
+          }
         } finally {
+          window.clearTimeout(timeoutId);
           send.disabled = false;
         }
       }
@@ -364,7 +394,15 @@ async def chat(request: ChatRequest) -> dict[str, str]:
     if not message:
         raise HTTPException(status_code=400, detail="Message is required.")
     try:
-        reply = await run_agent(message, request.history)
+        reply = await asyncio.wait_for(
+            run_agent(message, request.history),
+            timeout=REQUEST_TIMEOUT_SECONDS,
+        )
+    except TimeoutError as exc:
+        raise HTTPException(
+            status_code=504,
+            detail="Gemini took too long to respond. Try again in a moment.",
+        ) from exc
     except Exception as exc:  # noqa: BLE001
-        raise HTTPException(status_code=502, detail=f"ADK chat failed: {exc}") from exc
+        raise HTTPException(status_code=502, detail=friendly_provider_error(exc)) from exc
     return {"reply": reply}

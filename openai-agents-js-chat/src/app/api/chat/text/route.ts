@@ -3,6 +3,7 @@ import { createAiSdkTextStreamResponse } from '@openai/agents-extensions/ai-sdk-
 import type { UIMessage } from 'ai';
 
 import { toAgentInput } from '@/app/lib/messageConverters';
+import { normalizeOpenAIProviderError } from '@/app/lib/providerErrors';
 import { findOrCreateSession } from '@/app/lib/session';
 
 const textAgent = new Agent({
@@ -36,10 +37,14 @@ export async function POST(req: Request) {
     return new Response('Missing messages.', { status: 400 });
   }
 
-  const entry = await findOrCreateSession(sessionId);
-  const stream = await run(textAgent, input, {
-    stream: true,
-    session: entry.session,
-  });
-  return createAiSdkTextStreamResponse(stream);
+  try {
+    const entry = await findOrCreateSession(sessionId);
+    const stream = await run(textAgent, input, {
+      stream: true,
+      session: entry.session,
+    });
+    return createAiSdkTextStreamResponse(stream);
+  } catch (error) {
+    return new Response(normalizeOpenAIProviderError(error), { status: 500 });
+  }
 }

@@ -10,6 +10,7 @@ from pydantic import BaseModel, Field
 
 API_BASE = os.environ.get("OPENAI_COMPAT_API_BASE", "https://openrouter.ai/api/v1")
 MODEL_NAME = os.environ.get("OPENAI_COMPAT_MODEL", "openai/google/gemma-3n-e4b-it")
+REQUEST_TIMEOUT_SECONDS = 45
 
 
 class StructuredChat(dspy.Signature):
@@ -30,6 +31,25 @@ class ChatProgram(dspy.Module):
 
 
 app = FastAPI(title="DSPy Chat")
+
+
+def friendly_provider_error(exc: Exception) -> str:
+    message = str(exc).strip()
+    lower = message.lower()
+    if (
+        "api key" in lower
+        or "authentication" in lower
+        or "missing authentication" in lower
+        or "unauthorized" in lower
+        or "invalid" in lower and "key" in lower
+        or "openrouter_api_key" in lower
+    ):
+        return "Model credentials are invalid or missing for this deployment. Add a valid OPENROUTER_API_KEY and redeploy."
+    if "timeout" in lower or "timed out" in lower:
+        return "The model provider took too long to respond. Try again in a moment."
+    if "server disconnected" in lower or "connection" in lower or "proxy error" in lower:
+        return "The model provider closed the request before returning a response. Verify the deployment credentials and try again."
+    return "The model request failed for this deployment. Verify the configured credentials and try again."
 
 
 class ChatRequest(BaseModel):
@@ -270,11 +290,14 @@ HTML = """<!doctype html>
         send.disabled = true;
         status.textContent = "Thinking\u2026";
         typing.classList.add("active");
+        const controller = new AbortController();
+        const timeoutId = window.setTimeout(() => controller.abort(), 45000);
         try {
           const response = await fetch("/api/chat", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ message: content, history: history }),
+            signal: controller.signal,
           });
           const payload = await response.json();
           if (!response.ok) {
@@ -286,8 +309,13 @@ HTML = """<!doctype html>
           status.textContent = "Ready.";
         } catch (error) {
           typing.classList.remove("active");
-          status.textContent = String(error);
+          if (error instanceof DOMException && error.name === "AbortError") {
+            status.textContent = "The model took too long to respond. Try again.";
+          } else {
+            status.textContent = error instanceof Error ? error.message : String(error);
+          }
         } finally {
+          window.clearTimeout(timeoutId);
           send.disabled = false;
         }
       }
@@ -341,6 +369,14 @@ async def chat(request: ChatRequest) -> dict[str, str]:
     if not message:
         raise HTTPException(status_code=400, detail="Message is required.")
     try:
-        return await asyncio.to_thread(run_program, message, request.history)
+        return await asyncio.wait_for(
+            asyncio.to_thread(run_program, message, request.history),
+            timeout=REQUEST_TIMEOUT_SECONDS,
+        )
+    except TimeoutError as exc:
+        raise HTTPException(
+            status_code=504,
+            detail="The model provider took too long to respond. Try again in a moment.",
+        ) from exc
     except Exception as exc:  # noqa: BLE001
-        raise HTTPException(status_code=502, detail=f"DSPy chat failed: {exc}") from exc
+        raise HTTPException(status_code=502, detail=friendly_provider_error(exc)) from exc

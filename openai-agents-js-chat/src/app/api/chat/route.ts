@@ -4,6 +4,7 @@ import type { UIMessage } from 'ai';
 
 import { agent, customerSupportAgent } from './agents';
 import { toAgentInput } from '@/app/lib/messageConverters';
+import { normalizeOpenAIProviderError } from '@/app/lib/providerErrors';
 import { findOrCreateSession, saveSession } from '@/app/lib/session';
 
 const agentRegistry = new Map<string, Agent<any, any>>([
@@ -54,10 +55,7 @@ export async function POST(req: Request) {
 
     return createAiSdkUiMessageStreamResponse(stream);
   } catch (error) {
-    const message =
-      error instanceof Error
-        ? error.message
-        : 'The request failed with an unexpected error.';
+    const message = normalizeOpenAIProviderError(error);
     return new Response(message, { status: 500 });
   }
 }

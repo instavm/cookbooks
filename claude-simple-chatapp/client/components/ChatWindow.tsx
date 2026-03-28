@@ -14,6 +14,7 @@ interface ChatWindowProps {
   messages: Message[];
   isConnected: boolean;
   isLoading: boolean;
+  errorMessage: string | null;
   onSendMessage: (content: string) => void;
 }
 
@@ -93,6 +94,7 @@ export function ChatWindow({
   messages,
   isConnected,
   isLoading,
+  errorMessage,
   onSendMessage,
 }: ChatWindowProps) {
   const [input, setInput] = useState("");
@@ -136,6 +138,11 @@ export function ChatWindow({
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        {errorMessage ? (
+          <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            {errorMessage}
+          </div>
+        ) : null}
         {messages.length === 0 ? (
           <div className="text-center text-gray-400 mt-8">
             <p>Start a conversation</p>

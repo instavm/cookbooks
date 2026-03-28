@@ -1,5 +1,5 @@
 import type { WSClient } from "./types.js";
-import { AgentSession } from "./ai-client.js";
+import { AgentSession, normalizeClaudeError } from "./ai-client.js";
 import { chatStore } from "./chat-store.js";
 
 // Session manages a single chat conversation with a long-lived agent
@@ -25,7 +25,7 @@ export class Session {
       }
     } catch (error) {
       console.error(`Error in session ${this.chatId}:`, error);
-      this.broadcastError((error as Error).message);
+      this.broadcastError(normalizeClaudeError(error));
     }
   }
 

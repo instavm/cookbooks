@@ -20,6 +20,34 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const CLAUDE_CODE_WRAPPER = path.join(__dirname, "claude-code-wrapper.mjs");
 
+export function normalizeClaudeError(error: unknown): string {
+  const message = error instanceof Error && error.message.trim()
+    ? error.message.trim()
+    : String(error || '').trim();
+  const lower = message.toLowerCase();
+
+  if (
+    lower.includes('/login')
+    || lower.includes('not logged in')
+    || lower.includes('api key')
+    || lower.includes('authentication')
+    || lower.includes('unauthorized')
+    || (lower.includes('invalid') && lower.includes('key'))
+  ) {
+    return 'Claude credentials are invalid or missing for this deployment. Add a valid ANTHROPIC_API_KEY and redeploy.';
+  }
+
+  if (lower.includes('timeout') || lower.includes('timed out')) {
+    return 'Claude took too long to respond. Try again in a moment.';
+  }
+
+  if (lower.includes('server disconnected') || lower.includes('connection') || lower.includes('proxy error')) {
+    return 'Claude closed the request before returning a response. Verify the deployment credentials and try again.';
+  }
+
+  return 'The Claude request failed for this deployment. Verify the configured credentials and try again.';
+}
+
 // Simple async queue - messages go in via push(), come out via async iteration
 class MessageQueue {
   private messages: UserMessage[] = [];
