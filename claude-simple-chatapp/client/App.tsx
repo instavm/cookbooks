@@ -1,5 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
-import useWebSocket, { ReadyState } from "react-use-websocket";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { ChatList } from "./components/ChatList";
 import { ChatWindow } from "./components/ChatWindow";
 
@@ -19,15 +18,17 @@ interface Message {
   toolInput?: Record<string, any>;
 }
 
-// Use relative URLs - Vite will proxy to the backend
 const API_BASE = "/api";
-const WS_URL = `${window.location.protocol === "https:" ? "wss" : "ws"}://${window.location.host}/ws`;
 
 export default function App() {
   const [chats, setChats] = useState<Chat[]>([]);
   const [selectedChatId, setSelectedChatId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isConnected, setIsConnected] = useState(false);
+  const socketRef = useRef<WebSocket | null>(null);
+  const reconnectTimerRef = useRef<number | null>(null);
+  const selectedChatRef = useRef<string | null>(null);
 
   // Handle WebSocket messages
   const handleWSMessage = useCallback((message: any) => {
@@ -87,20 +88,12 @@ export default function App() {
     }
   }, []);
 
-  const { sendJsonMessage, readyState, lastJsonMessage } = useWebSocket(WS_URL, {
-    shouldReconnect: () => true,
-    reconnectAttempts: 10,
-    reconnectInterval: 3000,
-  });
-
-  const isConnected = readyState === ReadyState.OPEN;
-
-  // Handle incoming WebSocket messages
-  useEffect(() => {
-    if (lastJsonMessage) {
-      handleWSMessage(lastJsonMessage);
+  const sendJsonMessage = useCallback((payload: Record<string, any>) => {
+    const socket = socketRef.current;
+    if (socket && socket.readyState === WebSocket.OPEN) {
+      socket.send(JSON.stringify(payload));
     }
-  }, [lastJsonMessage, handleWSMessage]);
+  }, []);
 
   // Fetch all chats
   const fetchChats = async () => {
@@ -145,10 +138,10 @@ export default function App() {
   // Select a chat
   const selectChat = (chatId: string) => {
     setSelectedChatId(chatId);
+    selectedChatRef.current = chatId;
     setMessages([]);
     setIsLoading(false);
 
-    // Subscribe to chat via WebSocket
     sendJsonMessage({ type: "subscribe", chatId });
   };
 
@@ -181,6 +174,77 @@ export default function App() {
   useEffect(() => {
     fetchChats();
   }, []);
+
+  useEffect(() => {
+    selectedChatRef.current = selectedChatId;
+  }, [selectedChatId]);
+
+  useEffect(() => {
+    let isClosed = false;
+
+    const clearReconnectTimer = () => {
+      if (reconnectTimerRef.current !== null) {
+        window.clearTimeout(reconnectTimerRef.current);
+        reconnectTimerRef.current = null;
+      }
+    };
+
+    const scheduleReconnect = () => {
+      if (isClosed || reconnectTimerRef.current !== null) {
+        return;
+      }
+      reconnectTimerRef.current = window.setTimeout(() => {
+        reconnectTimerRef.current = null;
+        connect();
+      }, 3000);
+    };
+
+    const connect = () => {
+      const protocol = window.location.protocol === "https:" ? "wss" : "ws";
+      const socket = new WebSocket(`${protocol}://${window.location.host}/ws`);
+      socketRef.current = socket;
+
+      socket.addEventListener("open", () => {
+        clearReconnectTimer();
+        setIsConnected(true);
+        if (selectedChatRef.current) {
+          socket.send(JSON.stringify({ type: "subscribe", chatId: selectedChatRef.current }));
+        }
+      });
+
+      socket.addEventListener("message", (event) => {
+        try {
+          handleWSMessage(JSON.parse(event.data));
+        } catch (error) {
+          console.error("Failed to parse WebSocket message:", error);
+        }
+      });
+
+      socket.addEventListener("error", (error) => {
+        console.error("WebSocket error:", error);
+      });
+
+      socket.addEventListener("close", () => {
+        setIsConnected(false);
+        if (socketRef.current === socket) {
+          socketRef.current = null;
+        }
+        scheduleReconnect();
+      });
+    };
+
+    connect();
+
+    return () => {
+      isClosed = true;
+      clearReconnectTimer();
+      const socket = socketRef.current;
+      socketRef.current = null;
+      if (socket) {
+        socket.close();
+      }
+    };
+  }, [handleWSMessage]);
 
   return (
     <div className="flex h-screen">
