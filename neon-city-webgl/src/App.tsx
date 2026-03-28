@@ -26,12 +26,15 @@ import { easing } from 'maath';
 import * as THREE from 'three';
 
 type QualityTier = 0 | 1 | 2;
+type BuildingVariant = 'box' | 'stepped' | 'tapered' | 'tower';
 
 type BuildingSpec = {
   accent: string;
   baseColor: string;
   position: [number, number, number];
   scale: [number, number, number];
+  variant: BuildingVariant;
+  hasAntenna: boolean;
 };
 
 type LightOrb = {
@@ -40,6 +43,7 @@ type LightOrb = {
   speed: number;
   x: number;
   zOffset: number;
+  length: number;
 };
 
 type SignSpec = {
@@ -47,10 +51,12 @@ type SignSpec = {
   position: [number, number, number];
   rotationY: number;
   text: string;
+  fontSize: number;
+  vertical?: boolean;
 };
 
-const BUILDING_COLORS = ['#111827', '#151a2d', '#191f34', '#20263e'];
-const ACCENT_COLORS = ['#04d9ff', '#ff3d81', '#7c5cff', '#ff9d00'];
+const BUILDING_COLORS = ['#111827', '#151a2d', '#191f34', '#20263e', '#0f1520'];
+const ACCENT_COLORS = ['#04d9ff', '#ff3d81', '#7c5cff', '#ff9d00', '#00ff88', '#ff6b35'];
 const WALK_PATH = [
   new THREE.Vector3(7.5, 0, -24),
   new THREE.Vector3(10.5, 0, -4),
@@ -75,9 +81,7 @@ function createWindowTexture() {
   canvas.width = 256;
   canvas.height = 512;
   const ctx = canvas.getContext('2d');
-  if (!ctx) {
-    return null;
-  }
+  if (!ctx) return null;
 
   ctx.fillStyle = '#06070d';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -116,24 +120,31 @@ function createBuildingSpecs(quality: QualityTier): BuildingSpec[] {
   const rows: BuildingSpec[] = [];
 
   for (let x = -54; x <= 54; x += step) {
-    if (Math.abs(x) < 15) {
-      continue;
-    }
+    if (Math.abs(x) < 15) continue;
 
     for (let z = zStart; z <= zEnd; z += step) {
-      if (quality === 0 && Math.abs(z) > 70 && Math.random() > 0.55) {
-        continue;
-      }
+      if (quality === 0 && Math.abs(z) > 70 && Math.random() > 0.55) continue;
 
       const noise = noise2D(x * 0.055, z * 0.045);
-      const width = 3.8 + (Math.abs(noise2D(x * 0.1, z * 0.03)) * 3.2);
-      const depth = 3.6 + (Math.abs(noise2D(z * 0.09, x * 0.03)) * 3.4);
+      const width = 3.8 + Math.abs(noise2D(x * 0.1, z * 0.03)) * 3.2;
+      const depth = 3.6 + Math.abs(noise2D(z * 0.09, x * 0.03)) * 3.4;
       const height = 10 + Math.pow(Math.abs(noise), 0.75) * (quality === 2 ? 62 : quality === 1 ? 48 : 34);
+
+      const variantNoise = noise2D(x * 0.22, z * 0.17);
+      let variant: BuildingVariant = 'box';
+      if (height > 35 && variantNoise > 0.3) variant = 'stepped';
+      else if (height > 25 && variantNoise < -0.3) variant = 'tapered';
+      else if (height > 45 && Math.abs(variantNoise) < 0.15) variant = 'tower';
+
+      const hasAntenna = height > 30 && noise2D(x * 0.5, z * 0.4) > 0.4;
+
       rows.push({
         accent: ACCENT_COLORS[Math.floor(Math.abs(noise2D(x * 0.3, z * 0.18)) * ACCENT_COLORS.length) % ACCENT_COLORS.length],
         baseColor: BUILDING_COLORS[Math.floor(Math.abs(noise2D(x * 0.14, z * 0.11)) * BUILDING_COLORS.length) % BUILDING_COLORS.length],
         position: [x, height / 2 - 0.5, z],
         scale: [width, height, depth],
+        variant,
+        hasAntenna,
       });
     }
   }
@@ -149,20 +160,27 @@ function createTrafficOrbs(count: number): LightOrb[] {
       color: outbound ? '#ff7c3d' : '#2de2ff',
       laneOffset: outbound ? -1.9 : 1.9,
       speed: outbound ? 0.06 + (index % 5) * 0.004 : -0.05 - (index % 4) * 0.005,
-      x: outbound ? -2.7 : 2.7,
+      x: outbound ? -2.7 + (index % 3) * 0.6 : 2.7 - (index % 3) * 0.6,
       zOffset: (index / count) * 1.1,
+      length: 0.6 + Math.random() * 0.8,
     });
   }
   return orbs;
 }
 
-function createNeonSigns() {
+function createNeonSigns(): SignSpec[] {
   return [
-    { color: '#04d9ff', position: [-21, 12, -12], rotationY: 0.2, text: 'NOVA' },
-    { color: '#ff4d9d', position: [18, 14, 12], rotationY: -0.22, text: 'BYTE' },
-    { color: '#7c5cff', position: [-30, 18, 28], rotationY: 0.35, text: 'SKY' },
-    { color: '#ff9d00', position: [29, 16, -26], rotationY: -0.28, text: 'ARC' },
-  ] satisfies SignSpec[];
+    { color: '#04d9ff', position: [-21, 12, -12], rotationY: 0.2, text: 'NOVA', fontSize: 3.2 },
+    { color: '#ff4d9d', position: [18, 14, 12], rotationY: -0.22, text: 'BYTE', fontSize: 3.2 },
+    { color: '#7c5cff', position: [-30, 18, 28], rotationY: 0.35, text: 'SKY', fontSize: 3.0 },
+    { color: '#ff9d00', position: [29, 16, -26], rotationY: -0.28, text: 'ARC', fontSize: 3.0 },
+    { color: '#00ff88', position: [-18, 22, -40], rotationY: 0.15, text: 'PULSE', fontSize: 2.6 },
+    { color: '#ff3d81', position: [24, 10, 32], rotationY: -0.18, text: 'GRID', fontSize: 2.8 },
+    { color: '#04d9ff', position: [-38, 15, 8], rotationY: 0.5, text: '\u30CD\u30AA\u30F3', fontSize: 2.4, vertical: true },
+    { color: '#ff6b35', position: [35, 20, -10], rotationY: -0.4, text: '\u672A\u6765', fontSize: 2.2, vertical: true },
+    { color: '#7c5cff', position: [-15, 8, 50], rotationY: 0.1, text: 'DRIFT', fontSize: 2.4 },
+    { color: '#ff9d00', position: [12, 25, -50], rotationY: -0.12, text: 'APEX', fontSize: 2.6 },
+  ];
 }
 
 function App() {
@@ -223,14 +241,8 @@ function NeonCityScene({ quality }: { quality: QualityTier }) {
         shadow-mapSize-width={2048}
         shadow-mapSize-height={2048}
       />
-      <spotLight
-        color="#00d4ff"
-        intensity={100}
-        position={[12, 20, -16]}
-        angle={0.25}
-        penumbra={0.85}
-        distance={120}
-      />
+      <spotLight color="#00d4ff" intensity={100} position={[12, 20, -16]} angle={0.25} penumbra={0.85} distance={120} />
+      <spotLight color="#ff6b35" intensity={60} position={[-20, 15, -30]} angle={0.3} penumbra={0.9} distance={80} />
       <SkyDome />
       <Environment resolution={quality === 2 ? 256 : 128}>
         <Lightformer intensity={4.5} color="#ff3f81" scale={[60, 8, 1]} position={[0, 18, -40]} />
@@ -242,8 +254,11 @@ function NeonCityScene({ quality }: { quality: QualityTier }) {
       <CityBlocks quality={quality} />
       <RoadDeck quality={quality} />
       <TrafficStreams quality={quality} />
+      <RainSystem quality={quality} />
+      <StreetFog quality={quality} />
       <Walker />
       <NeonSigns />
+      <Holograms quality={quality} />
       <Sparkles
         count={quality === 2 ? 160 : quality === 1 ? 110 : 60}
         color="#82d1ff"
@@ -287,15 +302,8 @@ function CameraRig() {
   const path = useMemo(() => new THREE.CatmullRomCurve3(CAMERA_PATH, true, 'catmullrom', 0.25), []);
 
   useEffect(() => {
-    const tween = gsap.to(progressRef.current, {
-      value: 1,
-      duration: 32,
-      ease: 'none',
-      repeat: -1,
-    });
-    return () => {
-      tween.kill();
-    };
+    const tween = gsap.to(progressRef.current, { value: 1, duration: 32, ease: 'none', repeat: -1 });
+    return () => { tween.kill(); };
   }, []);
 
   useFrame((state, delta) => {
@@ -304,7 +312,6 @@ function CameraRig() {
     const lookTarget = path.getPointAt((t + 0.022) % 1);
     const parallax = new THREE.Vector3(state.pointer.x * 2.2, Math.max(-0.6, state.pointer.y) * 1.2, 0);
     const desired = cameraTarget.clone().add(parallax);
-
     easing.damp3(state.camera.position, desired.toArray(), 0.24, delta);
     state.camera.lookAt(lookTarget.x, lookTarget.y + 1.8 + state.pointer.y * 0.6, lookTarget.z - 4);
   });
@@ -320,9 +327,7 @@ function CityBlocks({ quality }: { quality: QualityTier }) {
   const accentGeometry = useMemo(() => new THREE.BoxGeometry(1, 1, 1), []);
 
   useLayoutEffect(() => {
-    if (!meshRef.current || !accentRef.current) {
-      return;
-    }
+    if (!meshRef.current || !accentRef.current) return;
 
     const mainMatrix = new THREE.Matrix4();
     const accentMatrix = new THREE.Matrix4();
@@ -333,18 +338,36 @@ function CityBlocks({ quality }: { quality: QualityTier }) {
 
     buildings.forEach((building, index) => {
       position.set(...building.position);
-      mainScale.set(...building.scale);
+      const [w, h, d] = building.scale;
+
+      if (building.variant === 'tapered') {
+        mainScale.set(w * 0.85, h, d * 0.85);
+      } else if (building.variant === 'tower') {
+        mainScale.set(w * 0.7, h * 1.15, d * 0.7);
+      } else {
+        mainScale.set(w, h, d);
+      }
+
       mainMatrix.compose(position, rotation, mainScale);
       meshRef.current!.setMatrixAt(index, mainMatrix);
       meshRef.current!.setColorAt(index, new THREE.Color(building.baseColor));
 
-      const signHeight = building.scale[1] * 0.035 + 0.2;
-      accentScale.set(Math.max(1.4, building.scale[0] * 0.62), signHeight, Math.max(1.1, building.scale[2] * 0.62));
-      accentMatrix.compose(
-        new THREE.Vector3(building.position[0], building.position[1] + building.scale[1] / 2 + signHeight * 0.42, building.position[2]),
-        rotation,
-        accentScale,
-      );
+      const signHeight = h * 0.035 + 0.2;
+      if (building.variant === 'stepped') {
+        accentScale.set(w * 0.75, signHeight * 3, d * 0.75);
+        accentMatrix.compose(
+          new THREE.Vector3(building.position[0], building.position[1] + h / 2 - signHeight * 2, building.position[2]),
+          rotation,
+          accentScale,
+        );
+      } else {
+        accentScale.set(Math.max(1.4, w * 0.62), signHeight, Math.max(1.1, d * 0.62));
+        accentMatrix.compose(
+          new THREE.Vector3(building.position[0], building.position[1] + h / 2 + signHeight * 0.42, building.position[2]),
+          rotation,
+          accentScale,
+        );
+      }
       accentRef.current!.setMatrixAt(index, accentMatrix);
       accentRef.current!.setColorAt(index, new THREE.Color(building.accent));
     });
@@ -354,6 +377,8 @@ function CityBlocks({ quality }: { quality: QualityTier }) {
     accentRef.current.instanceMatrix.needsUpdate = true;
     accentRef.current.instanceColor!.needsUpdate = true;
   }, [buildings]);
+
+  const antennas = useMemo(() => buildings.filter((b) => b.hasAntenna), [buildings]);
 
   return (
     <group>
@@ -373,6 +398,18 @@ function CityBlocks({ quality }: { quality: QualityTier }) {
       <instancedMesh ref={accentRef} args={[accentGeometry, undefined, buildings.length]}>
         <meshBasicMaterial toneMapped={false} vertexColors />
       </instancedMesh>
+      {quality >= 1 && antennas.map((building, i) => (
+        <group key={`ant-${i}`} position={[building.position[0], building.position[1] + building.scale[1] / 2, building.position[2]]}>
+          <mesh>
+            <cylinderGeometry args={[0.08, 0.12, 4, 6]} />
+            <meshStandardMaterial color="#1a2040" metalness={0.8} roughness={0.3} />
+          </mesh>
+          <mesh position={[0, 2.2, 0]}>
+            <sphereGeometry args={[0.2, 8, 8]} />
+            <meshBasicMaterial color={building.accent} toneMapped={false} />
+          </mesh>
+        </group>
+      ))}
     </group>
   );
 }
@@ -403,6 +440,15 @@ function RoadDeck({ quality }: { quality: QualityTier }) {
         <planeGeometry args={[12, 220]} />
         <meshStandardMaterial color="#080b12" emissive="#040812" emissiveIntensity={0.65} roughness={0.98} metalness={0.2} />
       </mesh>
+      {/* Sidewalks */}
+      <mesh rotation-x={-Math.PI / 2} position={[-7.5, 0.04, 0]}>
+        <planeGeometry args={[2.2, 220]} />
+        <meshStandardMaterial color="#0a0e18" emissive="#060a14" emissiveIntensity={0.3} roughness={0.95} />
+      </mesh>
+      <mesh rotation-x={-Math.PI / 2} position={[7.5, 0.04, 0]}>
+        <planeGeometry args={[2.2, 220]} />
+        <meshStandardMaterial color="#0a0e18" emissive="#060a14" emissiveIntensity={0.3} roughness={0.95} />
+      </mesh>
       {Array.from({ length: stripeCount }, (_, index) => (
         <mesh key={index} position={[0, 0.025, -105 + index * 7]} rotation-x={-Math.PI / 2}>
           <planeGeometry args={[0.18, 3.2]} />
@@ -417,6 +463,13 @@ function RoadDeck({ quality }: { quality: QualityTier }) {
         <planeGeometry args={[0.32, 220]} />
         <meshBasicMaterial color="#ff4d9d" transparent opacity={0.28} toneMapped={false} />
       </mesh>
+      {/* Intersection light pools */}
+      {quality >= 1 && [-40, 0, 40].map((z) => (
+        <mesh key={`pool-${z}`} rotation-x={-Math.PI / 2} position={[0, 0.02, z]}>
+          <circleGeometry args={[4, 32]} />
+          <meshBasicMaterial color="#04d9ff" transparent opacity={0.04} toneMapped={false} />
+        </mesh>
+      ))}
     </group>
   );
 }
@@ -428,9 +481,11 @@ function TrafficStreams({ quality }: { quality: QualityTier }) {
   useFrame((state) => {
     const elapsed = state.clock.elapsedTime;
     groupRef.current?.children.forEach((child, index) => {
+      if (index >= orbs.length) return;
       const orb = orbs[index];
       const wrapped = ((elapsed * orb.speed + orb.zOffset) % 1 + 1) % 1;
       child.position.set(orb.x, 0.4, THREE.MathUtils.lerp(80, -90, wrapped));
+      child.scale.set(1, 1, orb.length);
     });
   });
 
@@ -438,10 +493,95 @@ function TrafficStreams({ quality }: { quality: QualityTier }) {
     <group ref={groupRef}>
       {orbs.map((orb, index) => (
         <mesh key={`${orb.color}-${index}`} position={[orb.x, 0.4, 0]}>
-          <sphereGeometry args={[0.2, 16, 16]} />
-          <meshBasicMaterial color={orb.color} toneMapped={false} />
+          <capsuleGeometry args={[0.12, 0.4, 4, 8]} />
+          <meshBasicMaterial color={orb.color} toneMapped={false} transparent opacity={0.85} />
         </mesh>
       ))}
+    </group>
+  );
+}
+
+function RainSystem({ quality }: { quality: QualityTier }) {
+  const count = quality === 2 ? 2000 : quality === 1 ? 1000 : 400;
+  const meshRef = useRef<THREE.InstancedMesh>(null);
+  const drops = useMemo(() => {
+    const arr: { x: number; y: number; z: number; speed: number }[] = [];
+    for (let i = 0; i < count; i++) {
+      arr.push({
+        x: (Math.random() - 0.5) * 100,
+        y: Math.random() * 60,
+        z: (Math.random() - 0.5) * 180,
+        speed: 12 + Math.random() * 8,
+      });
+    }
+    return arr;
+  }, [count]);
+
+  const matrix = useMemo(() => new THREE.Matrix4(), []);
+
+  useFrame((state, delta) => {
+    if (!meshRef.current) return;
+    for (let i = 0; i < drops.length; i++) {
+      const drop = drops[i];
+      drop.y -= drop.speed * delta;
+      if (drop.y < -1) {
+        drop.y = 55 + Math.random() * 10;
+        drop.x = (Math.random() - 0.5) * 100;
+        drop.z = (Math.random() - 0.5) * 180;
+      }
+      matrix.makeTranslation(drop.x, drop.y, drop.z);
+      meshRef.current.setMatrixAt(i, matrix);
+    }
+    meshRef.current.instanceMatrix.needsUpdate = true;
+  });
+
+  return (
+    <instancedMesh ref={meshRef} args={[undefined, undefined, count]}>
+      <cylinderGeometry args={[0.01, 0.01, 0.6, 3]} />
+      <meshBasicMaterial color="#6ba8d4" transparent opacity={0.18} toneMapped={false} />
+    </instancedMesh>
+  );
+}
+
+function StreetFog({ quality }: { quality: QualityTier }) {
+  if (quality === 0) return null;
+
+  const matRef = useRef<THREE.MeshBasicMaterial>(null);
+  useFrame((state) => {
+    if (!matRef.current) return;
+    matRef.current.opacity = 0.06 + Math.sin(state.clock.elapsedTime * 0.3) * 0.02;
+  });
+
+  return (
+    <mesh rotation-x={-Math.PI / 2} position={[0, 1.5, 0]}>
+      <planeGeometry args={[80, 180]} />
+      <meshBasicMaterial ref={matRef} color="#1a3050" transparent opacity={0.06} depthWrite={false} />
+    </mesh>
+  );
+}
+
+function Holograms({ quality }: { quality: QualityTier }) {
+  if (quality === 0) return null;
+
+  const matRef1 = useRef<THREE.MeshBasicMaterial>(null);
+  const matRef2 = useRef<THREE.MeshBasicMaterial>(null);
+
+  useFrame((state) => {
+    const t = state.clock.elapsedTime;
+    if (matRef1.current) matRef1.current.opacity = 0.12 + Math.sin(t * 1.5) * 0.06;
+    if (matRef2.current) matRef2.current.opacity = 0.10 + Math.sin(t * 1.2 + 1) * 0.05;
+  });
+
+  return (
+    <group>
+      <mesh position={[-22, 18, -18]} rotation={[0, 0.3, 0]}>
+        <planeGeometry args={[5, 8]} />
+        <meshBasicMaterial ref={matRef1} color="#04d9ff" transparent opacity={0.12} side={THREE.DoubleSide} toneMapped={false} depthWrite={false} />
+      </mesh>
+      <mesh position={[26, 15, 20]} rotation={[0, -0.25, 0]}>
+        <planeGeometry args={[4, 6]} />
+        <meshBasicMaterial ref={matRef2} color="#ff3d81" transparent opacity={0.10} side={THREE.DoubleSide} toneMapped={false} depthWrite={false} />
+      </mesh>
     </group>
   );
 }
@@ -454,12 +594,8 @@ function Walker() {
 
   useEffect(() => {
     model.scene.traverse((child) => {
-      if ('castShadow' in child) {
-        child.castShadow = true;
-      }
-      if ('receiveShadow' in child) {
-        child.receiveShadow = true;
-      }
+      if ('castShadow' in child) child.castShadow = true;
+      if ('receiveShadow' in child) child.receiveShadow = true;
     });
   }, [model.scene]);
 
@@ -467,18 +603,12 @@ function Walker() {
     const clipName = names.find((name) => /walk/i.test(name)) || names[0];
     const action = clipName ? actions[clipName] : undefined;
     action?.reset().fadeIn(0.35).play();
-    if (action) {
-      action.timeScale = 1.1;
-    }
-    return () => {
-      action?.fadeOut(0.2);
-    };
+    if (action) action.timeScale = 1.1;
+    return () => { action?.fadeOut(0.2); };
   }, [actions, names]);
 
   useFrame((state) => {
-    if (!groupRef.current) {
-      return;
-    }
+    if (!groupRef.current) return;
     const t = (state.clock.elapsedTime * 0.055) % 1;
     const position = path.getPointAt(t);
     const tangent = path.getTangentAt(t);
@@ -508,10 +638,10 @@ function NeonSigns() {
         <Float key={sign.text} speed={1.6} rotationIntensity={0.1} floatIntensity={0.28}>
           <Text
             position={sign.position}
-            rotation={[0, sign.rotationY, 0]}
-            fontSize={3.2}
+            rotation={[0, sign.rotationY, sign.vertical ? Math.PI / 2 : 0]}
+            fontSize={sign.fontSize}
             color={sign.color}
-            letterSpacing={0.12}
+            letterSpacing={sign.vertical ? 0.3 : 0.12}
             anchorX="center"
             anchorY="middle"
             outlineColor="#05070d"

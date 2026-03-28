@@ -41,100 +41,172 @@ HTML = """<!doctype html>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Research Desk</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet" />
     <style>
       :root {
-        color-scheme: light;
-        --bg: #f4f1ea;
-        --panel: #fffdf8;
-        --ink: #152313;
-        --muted: #66745f;
-        --accent: #1d6b52;
-        --accent-2: #d7efe3;
-        --border: #d5ddcf;
+        color-scheme: dark;
+        --bg: #0c1210;
+        --surface: rgba(16, 32, 26, 0.55);
+        --glass: rgba(22, 44, 36, 0.42);
+        --ink: #e8f0ec;
+        --muted: #8fa89a;
+        --accent: #34d399;
+        --accent-dim: rgba(52, 211, 153, 0.12);
+        --accent-glow: rgba(52, 211, 153, 0.25);
+        --border: rgba(52, 211, 153, 0.14);
+        --radius: 16px;
       }
-      * { box-sizing: border-box; }
+      * { box-sizing: border-box; margin: 0; }
       body {
-        margin: 0;
-        font-family: "IBM Plex Sans", "Avenir Next", sans-serif;
-        background:
-          radial-gradient(circle at top right, #d5efe4, transparent 28rem),
-          linear-gradient(180deg, #fbfaf7, var(--bg));
+        font-family: "Inter", system-ui, sans-serif;
         color: var(--ink);
+        background: var(--bg);
+        min-height: 100vh;
+        overflow-x: hidden;
       }
-      main { max-width: 960px; margin: 0 auto; padding: 2rem 1.25rem 3rem; }
-      h1 { margin-bottom: 0.5rem; font-size: clamp(2rem, 5vw, 3rem); }
-      p { color: var(--muted); line-height: 1.55; }
-      .panel {
-        background: var(--panel);
+      body::before {
+        content: "";
+        position: fixed; inset: 0; z-index: -1;
+        background:
+          radial-gradient(ellipse 70% 50% at 20% 10%, rgba(52,211,153,0.10), transparent),
+          radial-gradient(ellipse 60% 40% at 80% 85%, rgba(16,185,129,0.08), transparent),
+          radial-gradient(ellipse 50% 50% at 50% 50%, rgba(6,78,59,0.12), transparent);
+      }
+      main { max-width: 980px; margin: 0 auto; padding: 2.5rem 1.25rem 4rem; }
+      h1 {
+        font-family: "Space Grotesk", sans-serif;
+        font-size: clamp(2rem, 5vw, 2.8rem);
+        font-weight: 700;
+        letter-spacing: -0.02em;
+        background: linear-gradient(135deg, #e8f0ec 30%, var(--accent));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+      }
+      .subtitle { color: var(--muted); line-height: 1.6; margin-top: 0.5rem; font-size: 0.95rem; }
+      .chips { display: flex; gap: 0.6rem; flex-wrap: wrap; margin: 1.2rem 0 1.6rem; }
+      .chip {
+        border-radius: 999px;
+        padding: 0.3rem 0.75rem;
+        background: var(--accent-dim);
+        color: var(--accent);
+        font-size: 0.82rem;
+        font-weight: 500;
         border: 1px solid var(--border);
-        border-radius: 18px;
-        padding: 1rem;
-        box-shadow: 0 16px 36px rgba(21, 35, 19, 0.07);
+        letter-spacing: 0.01em;
       }
+      .glass {
+        background: var(--glass);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 1.25rem;
+        backdrop-filter: blur(18px) saturate(1.4);
+        -webkit-backdrop-filter: blur(18px) saturate(1.4);
+        box-shadow: 0 8px 32px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.04);
+      }
+      label { font-weight: 500; font-size: 0.88rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
       textarea {
         width: 100%;
-        min-height: 140px;
+        min-height: 120px;
+        margin-top: 0.6rem;
         border: 1px solid var(--border);
-        border-radius: 14px;
-        padding: 0.9rem 1rem;
+        border-radius: 12px;
+        padding: 0.85rem 1rem;
         font: inherit;
+        font-size: 0.92rem;
         resize: vertical;
-        background: #fff;
+        background: rgba(0,0,0,0.3);
+        color: var(--ink);
+        transition: border-color 0.25s, box-shadow 0.25s;
+        outline: none;
+      }
+      textarea:focus {
+        border-color: var(--accent);
+        box-shadow: 0 0 0 3px var(--accent-glow);
       }
       button {
         margin-top: 0.9rem;
         border: 0;
         border-radius: 999px;
-        padding: 0.85rem 1.2rem;
+        padding: 0.75rem 1.5rem;
         font: inherit;
         font-weight: 600;
+        font-size: 0.9rem;
         cursor: pointer;
-        color: #fff;
-        background: var(--accent);
+        color: #0c1210;
+        background: linear-gradient(135deg, #34d399, #10b981);
+        box-shadow: 0 2px 12px rgba(52,211,153,0.3);
+        transition: transform 0.2s cubic-bezier(.4,0,.2,1), box-shadow 0.2s;
+      }
+      button:hover:not(:disabled) {
+        transform: translateY(-1px) scale(1.02);
+        box-shadow: 0 4px 20px rgba(52,211,153,0.4);
+      }
+      button:disabled { opacity: 0.5; cursor: not-allowed; }
+      .status-row { display: flex; align-items: center; gap: 0.5rem; min-height: 1.5rem; margin-top: 0.7rem; }
+      #status { font-weight: 600; font-size: 0.88rem; color: var(--accent); }
+      .pulse-dot {
+        width: 8px; height: 8px; border-radius: 50%; background: var(--accent);
+        display: none;
+        animation: pulse 1.4s ease-in-out infinite;
+      }
+      .pulse-dot.active { display: block; }
+      @keyframes pulse { 0%,100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.4; transform: scale(0.75); } }
+      .grid { display: grid; gap: 1rem; margin-top: 1.25rem; }
+      .grid .glass { transition: opacity 0.4s ease, transform 0.4s ease; }
+      .grid .glass.loading { opacity: 0.5; }
+      h2 {
+        font-family: "Space Grotesk", sans-serif;
+        font-size: 1.05rem;
+        font-weight: 600;
+        margin-bottom: 0.75rem;
+        color: var(--accent);
+        letter-spacing: -0.01em;
       }
       pre {
         margin: 0;
         white-space: pre-wrap;
-        line-height: 1.55;
-        font-family: "IBM Plex Mono", "SFMono-Regular", monospace;
+        line-height: 1.65;
+        font-family: "SF Mono", "Fira Code", monospace;
+        font-size: 0.85rem;
+        color: var(--muted);
       }
-      .grid { display: grid; gap: 1rem; margin-top: 1.25rem; }
-      .meta { display: flex; gap: 0.75rem; flex-wrap: wrap; margin: 1rem 0; }
-      .chip {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.35rem;
-        border-radius: 999px;
-        padding: 0.35rem 0.7rem;
-        background: var(--accent-2);
-        color: var(--accent);
-        font-size: 0.9rem;
+      pre.has-content { color: var(--ink); }
+      .shimmer {
+        background: linear-gradient(90deg, transparent, rgba(52,211,153,0.06), transparent);
+        background-size: 200% 100%;
+        animation: shimmer 1.8s ease-in-out infinite;
       }
-      #status { min-height: 1.5rem; font-weight: 600; color: var(--accent); }
+      @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
       @media (min-width: 900px) { .grid { grid-template-columns: 1.2fr 1fr; } }
+      @media (max-width: 600px) { main { padding: 1.5rem 1rem 2.5rem; } }
     </style>
   </head>
   <body>
     <main>
       <h1>Research Desk</h1>
-      <p>Ask for a market brief, company update, product scan, or technical summary. The app gathers supporting notes and turns them into a concise memo.</p>
-      <div class="meta">
+      <p class="subtitle">Ask for a market brief, company update, product scan, or technical summary. The app gathers supporting notes and turns them into a concise memo.</p>
+      <div class="chips">
         <span class="chip">OpenAI Agents</span>
         <span class="chip">Web search grounded</span>
         <span class="chip">Briefing generator</span>
       </div>
-      <section class="panel">
-        <label for="query"><strong>Research prompt</strong></label>
+      <section class="glass">
+        <label for="query">Research prompt</label>
         <textarea id="query">Summarize the latest AI browser agents landscape, key product themes, and notable open questions.</textarea>
         <button id="run">Generate briefing</button>
-        <div id="status"></div>
+        <div class="status-row">
+          <span class="pulse-dot" id="dot"></span>
+          <span id="status"></span>
+        </div>
       </section>
       <section class="grid">
-        <article class="panel">
+        <article class="glass" id="briefing-panel">
           <h2>Briefing</h2>
           <pre id="report">Run a query to generate a research memo.</pre>
         </article>
-        <article class="panel">
+        <article class="glass" id="notes-panel">
           <h2>Research Notes</h2>
           <pre id="notes">The analyst pass will appear here.</pre>
         </article>
@@ -143,15 +215,23 @@ HTML = """<!doctype html>
     <script>
       const query = document.getElementById("query");
       const status = document.getElementById("status");
+      const dot = document.getElementById("dot");
       const notes = document.getElementById("notes");
       const report = document.getElementById("report");
       const run = document.getElementById("run");
+      const briefingPanel = document.getElementById("briefing-panel");
+      const notesPanel = document.getElementById("notes-panel");
 
       async function submit() {
-        status.textContent = "Researching...";
+        status.textContent = "Researching\u2026";
+        dot.classList.add("active");
         run.disabled = true;
         notes.textContent = "";
+        notes.className = "shimmer";
         report.textContent = "";
+        report.className = "shimmer";
+        briefingPanel.classList.add("loading");
+        notesPanel.classList.add("loading");
         try {
           const response = await fetch("/api/report", {
             method: "POST",
@@ -162,11 +242,21 @@ HTML = """<!doctype html>
           if (!response.ok) {
             throw new Error(payload.detail || "Request failed");
           }
+          notes.className = "has-content";
+          report.className = "has-content";
           notes.textContent = payload.notes;
           report.textContent = payload.report;
+          briefingPanel.classList.remove("loading");
+          notesPanel.classList.remove("loading");
           status.textContent = "Done.";
+          dot.classList.remove("active");
         } catch (error) {
+          notes.className = "";
+          report.className = "";
+          briefingPanel.classList.remove("loading");
+          notesPanel.classList.remove("loading");
           status.textContent = String(error);
+          dot.classList.remove("active");
         } finally {
           run.disabled = false;
         }
