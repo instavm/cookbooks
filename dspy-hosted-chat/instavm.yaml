@@ -2,7 +2,7 @@ schema_version: 1
 slug: dspy-hosted-chat
 title: DSPy Hosted Chat
 version: "0.1.0"
-summary: DSPy chat starter wired to an OpenAI-compatible hosted endpoint instead of a local CPU-only model runtime.
+summary: DSPy chat app with a hosted model and a compact Gemma-family default via OpenRouter.
 category: agents
 runtime: python-fastapi
 deploy:
@@ -25,8 +25,8 @@ secrets:
     prompt: OpenRouter API key
     env_name: OPENROUTER_API_KEY
 post_deploy_notes:
-  - This cookbook defaults to a hosted Gemma-family model instead of local inference.
-  - Override OPENAI_COMPAT_MODEL or OPENAI_COMPAT_API_BASE before deploy if you use a different provider.
+  - By default this cookbook uses a compact Gemma-family model through OpenRouter.
+  - Set OPENAI_COMPAT_MODEL or OPENAI_COMPAT_API_BASE before deploy to use a different model or provider.
 build:
   context: .
   dockerfile: Dockerfile

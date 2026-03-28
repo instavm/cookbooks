@@ -122,11 +122,11 @@ HTML = """<!doctype html>
   <body>
     <main>
       <h1>DSPy Hosted Chat</h1>
-      <p>This starter uses DSPy with an OpenAI-compatible hosted model endpoint instead of trying to run Gemma locally on CPU-only VMs. The default wiring targets a small hosted Gemma-family model through OpenRouter.</p>
+      <p>DSPy chat app powered by a hosted model. By default it uses a compact Gemma-family model through OpenRouter, and you can switch models or providers with environment variables.</p>
       <div class="chips">
         <span class="chip">DSPy</span>
-        <span class="chip">OpenAI-compatible provider</span>
-        <span class="chip">Gemma-friendly default</span>
+        <span class="chip">Hosted model</span>
+        <span class="chip">Gemma default</span>
       </div>
       <section class="panel">
         <div id="thread"></div>

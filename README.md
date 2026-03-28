@@ -22,7 +22,7 @@ python3 scripts/validate_manifests.py
 - `openai-agents-js-chat`: Next.js streaming chat UI adapted from the OpenAI Agents JS AI SDK UI example.
 - `openai-agents-python-research`: FastAPI research memo app inspired by the OpenAI Agents Python research examples.
 - `google-adk-web-chat`: browser-first Google ADK starter derived from the minimal ADK example shape.
-- `dspy-hosted-chat`: DSPy chat starter using a hosted OpenAI-compatible endpoint instead of local CPU-only inference.
+- `dspy-hosted-chat`: DSPy chat app with a hosted model and a compact Gemma-family default via OpenRouter.
 
 ## Deploy Contract
 
