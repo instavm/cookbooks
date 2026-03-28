@@ -22,7 +22,7 @@ run:
     export NVM_DIR="$HOME/.nvm" &&
     . "$NVM_DIR/nvm.sh" &&
     nvm use 22 >/dev/null &&
-    PORT=3001 npm start
+    NODE_OPTIONS="--require $PWD/server/claude-code-dns-patch.cjs" PORT=3001 npm start
 secrets:
   - name: anthropic_api_key
     required: true
@@ -61,4 +61,4 @@ source:
     nvm install 22 &&
     nvm use 22 &&
     npm install &&
-    npm run build
+    NODE_OPTIONS="--require $PWD/server/claude-code-dns-patch.cjs" npm run build
