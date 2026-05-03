@@ -89,150 +89,360 @@ HTML = """<!doctype html>
     <title>Vibe Preview</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;450;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
     <style>
       :root {
         color-scheme: dark;
-        --bg: #0b0a18;
-        --surface: rgba(28, 22, 50, 0.55);
-        --glass: rgba(36, 28, 64, 0.42);
-        --ink: #ece8f5;
-        --muted: #948cb0;
+        --bg: #08090a;
+        --surface: #0f1011;
+        --surface-2: #15171a;
+        --surface-3: #1a1d21;
+        --hover: #1f2227;
+        --border: #1f2225;
+        --border-strong: #2a2d32;
+        --ink: #e8e9ea;
+        --ink-2: #c8c9cb;
+        --muted: #8a8d92;
+        --muted-2: #5b5e63;
         --accent: #a78bfa;
-        --accent-2: #f472b6;
-        --accent-soft: rgba(167, 139, 250, 0.12);
-        --accent-glow: rgba(167, 139, 250, 0.28);
-        --border: rgba(167, 139, 250, 0.18);
-        --good: #34d399;
-        --radius: 16px;
+        --accent-bg: rgba(167,139,250,0.10);
+        --accent-border: rgba(167,139,250,0.28);
+        --success: #4ade80;
+        --success-bg: rgba(74,222,128,0.09);
+        --success-border: rgba(74,222,128,0.25);
+        --danger: #f87171;
+        --warn: #fbbf24;
+        --info: #60a5fa;
+        --radius-sm: 6px;
+        --radius: 8px;
+        --radius-lg: 12px;
+        --shadow-sm: 0 1px 0 rgba(255,255,255,0.04) inset;
       }
-      * { box-sizing: border-box; margin: 0; }
-      body { font-family: "Inter", system-ui, sans-serif; color: var(--ink); background: var(--bg); min-height: 100vh; }
-      body::before {
-        content: "";
-        position: fixed; inset: 0; z-index: -1;
-        background:
-          radial-gradient(ellipse 70% 50% at 20% 10%, rgba(167,139,250,0.13), transparent),
-          radial-gradient(ellipse 60% 40% at 80% 85%, rgba(244,114,182,0.10), transparent),
-          radial-gradient(ellipse 50% 50% at 50% 50%, rgba(11,10,24,0.18), transparent);
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+      html, body { height: 100%; }
+      body {
+        font-family: "Inter", -apple-system, system-ui, sans-serif;
+        font-size: 14px;
+        line-height: 1.5;
+        font-feature-settings: "cv11", "ss01", "ss03";
+        color: var(--ink);
+        background: var(--bg);
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
       }
-      main { max-width: 1280px; margin: 0 auto; padding: 2.2rem 1.25rem 4rem; }
-      header { margin-bottom: 1.6rem; }
+      main { max-width: 1320px; margin: 0 auto; padding: 32px 24px 64px; }
+      header { margin-bottom: 28px; }
+      .brand { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; font-size: 13px; color: var(--muted); }
+      .brand .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 3px var(--accent-bg); }
       h1 {
-        font-family: "Space Grotesk", sans-serif;
-        font-size: clamp(2rem, 5vw, 2.6rem);
-        font-weight: 700;
-        letter-spacing: -0.02em;
-        background: linear-gradient(135deg, #ece8f5 30%, var(--accent), var(--accent-2));
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
+        font-size: 28px; font-weight: 600; letter-spacing: -0.025em;
+        color: var(--ink); margin-bottom: 8px;
       }
-      .subtitle { color: var(--muted); line-height: 1.55; margin-top: 0.5rem; font-size: 0.92rem; max-width: 760px; }
-      .chips { display: flex; gap: 0.5rem; flex-wrap: wrap; margin: 0.95rem 0 0; }
-      .chip { border-radius: 999px; padding: 0.25rem 0.65rem; background: var(--accent-soft); color: var(--accent); font-size: 0.78rem; font-weight: 500; border: 1px solid var(--border); }
-      .grid { display: grid; gap: 1rem; }
-      @media (min-width: 980px) { .grid { grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr); } }
-      .glass { background: var(--glass); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.15rem 1.25rem; backdrop-filter: blur(18px) saturate(1.4); -webkit-backdrop-filter: blur(18px) saturate(1.4); box-shadow: 0 8px 32px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.04); }
-      h2 { font-family: "Space Grotesk", sans-serif; font-size: 1rem; font-weight: 600; margin-bottom: 0.7rem; color: var(--accent); letter-spacing: -0.01em; }
-      label { font-weight: 500; font-size: 0.85rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
-      textarea { width: 100%; min-height: 180px; margin-top: 0.5rem; border: 1px solid var(--border); border-radius: 12px; padding: 0.85rem 1rem; font: inherit; font-size: 0.92rem; resize: vertical; background: rgba(0,0,0,0.3); color: var(--ink); transition: border-color 0.25s, box-shadow 0.25s; outline: none; }
-      textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
-      .examples { display: flex; flex-direction: column; gap: 0.4rem; margin-top: 0.7rem; }
-      .example { padding: 0.5rem 0.7rem; background: rgba(0,0,0,0.2); border: 1px solid var(--border); border-radius: 10px; font-size: 0.82rem; color: var(--muted); cursor: pointer; transition: all 0.2s; }
-      .example:hover { color: var(--ink); border-color: var(--accent); background: var(--accent-soft); }
-      button { margin-top: 0.95rem; border: 0; border-radius: 999px; padding: 0.75rem 1.5rem; font: inherit; font-weight: 600; font-size: 0.9rem; cursor: pointer; color: #1a0a2e; background: linear-gradient(135deg, var(--accent), var(--accent-2)); box-shadow: 0 2px 12px rgba(167,139,250,0.3); transition: transform 0.2s cubic-bezier(.4,0,.2,1), box-shadow 0.2s; }
-      button:hover:not(:disabled) { transform: translateY(-1px) scale(1.02); box-shadow: 0 4px 20px rgba(167,139,250,0.4); }
-      button:disabled { opacity: 0.5; cursor: not-allowed; }
-      .timeline { display: flex; flex-direction: column; gap: 0.55rem; max-height: 500px; overflow-y: auto; padding-right: 0.25rem; }
-      .timeline::-webkit-scrollbar { width: 6px; }
-      .timeline::-webkit-scrollbar-thumb { background: rgba(167,139,250,0.3); border-radius: 3px; }
-      .step { border-left: 2px solid rgba(167,139,250,0.4); padding: 0.4rem 0.6rem; background: rgba(0,0,0,0.18); border-radius: 0 8px 8px 0; font-size: 0.82rem; }
-      .step .label { color: var(--accent); font-weight: 500; font-size: 0.74rem; text-transform: uppercase; letter-spacing: 0.05em; }
-      .step .body { font-family: "SF Mono", "Fira Code", monospace; color: var(--ink); white-space: pre-wrap; word-break: break-word; margin-top: 0.2rem; line-height: 1.45; max-height: 160px; overflow-y: auto; }
-      .preview { margin-top: 1rem; padding: 0.85rem 0.95rem; border-radius: var(--radius); background: rgba(0,0,0,0.3); border: 1px solid var(--border); animation: in 0.4s ease; }
-      @keyframes in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
-      .preview .meta { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 0.55rem; font-size: 0.84rem; }
-      .badge { display: inline-block; padding: 0.18rem 0.55rem; border-radius: 999px; font-weight: 600; font-size: 0.74rem; letter-spacing: 0.04em; background: rgba(52,211,153,0.15); color: var(--good); border: 1px solid rgba(52,211,153,0.3); }
-      .preview a { color: var(--accent-2); text-decoration: underline; word-break: break-all; }
-      .preview .ttl { margin-left: auto; color: var(--muted); font-size: 0.78rem; }
-      .preview iframe { width: 100%; height: 520px; border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; background: white; }
-      .status-row { display: flex; align-items: center; gap: 0.5rem; min-height: 1.2rem; margin-top: 0.7rem; font-size: 0.84rem; }
-      #status { font-weight: 600; color: var(--accent); }
-      .pulse-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); display: none; animation: pulse 1.4s ease-in-out infinite; }
-      .pulse-dot.active { display: block; }
-      @keyframes pulse { 0%,100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.4; transform: scale(0.75); } }
-      .sec-note { margin-top: 0.85rem; font-size: 0.78rem; color: var(--muted); padding-top: 0.7rem; border-top: 1px solid rgba(255,255,255,0.06); line-height: 1.5; }
-      .sec-note b { color: var(--ink); }
-      .empty { color: var(--muted); font-size: 0.85rem; padding: 0.6rem 0; }
+      .subtitle { color: var(--muted); max-width: 720px; font-size: 14px; }
+      .subtitle b { color: var(--ink-2); font-weight: 500; }
+      .chips { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 14px; }
+      .chip {
+        padding: 3px 9px; border-radius: var(--radius-sm); font-size: 12px;
+        font-weight: 450; color: var(--muted);
+        background: var(--surface-2); border: 1px solid var(--border);
+      }
+      .grid {
+        display: grid; gap: 16px;
+        grid-template-columns: minmax(0, 1fr);
+      }
+      @media (min-width: 1040px) {
+        .grid { grid-template-columns: 380px minmax(0, 1fr); }
+      }
+      .card {
+        background: var(--surface); border: 1px solid var(--border);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow-sm);
+      }
+      .card.input-card { padding: 18px; }
+      .card.output-card { padding: 0; overflow: hidden; display: flex; flex-direction: column; min-height: 540px; }
+      .panel-header {
+        display: flex; align-items: center; justify-content: space-between;
+        padding: 14px 18px; border-bottom: 1px solid var(--border);
+        font-size: 13px; font-weight: 500; color: var(--ink-2);
+      }
+      .panel-header .meta { color: var(--muted); font-size: 12px; font-weight: 400; }
+      h2 { font-size: 13px; font-weight: 500; color: var(--ink-2); margin-bottom: 12px; letter-spacing: -0.005em; }
+      label { display: block; font-size: 12px; font-weight: 450; color: var(--muted); margin-bottom: 6px; }
+      textarea {
+        width: 100%; min-height: 132px; padding: 10px 12px;
+        font: inherit; font-size: 13.5px; line-height: 1.5; color: var(--ink);
+        background: var(--surface-2); border: 1px solid var(--border);
+        border-radius: var(--radius-sm); resize: vertical; outline: none;
+        transition: border-color 0.15s ease, box-shadow 0.15s ease;
+      }
+      textarea::placeholder { color: var(--muted-2); }
+      textarea:focus { border-color: var(--accent-border); box-shadow: 0 0 0 3px var(--accent-bg); }
+      .examples { display: flex; flex-direction: column; gap: 4px; margin-top: 10px; }
+      .example {
+        display: flex; align-items: center; gap: 8px;
+        padding: 7px 10px; background: transparent; border: 1px solid var(--border);
+        border-radius: var(--radius-sm); font-size: 13px; color: var(--muted);
+        cursor: pointer; text-align: left;
+        transition: color 0.12s ease, border-color 0.12s ease, background 0.12s ease;
+      }
+      .example:hover { color: var(--ink); border-color: var(--border-strong); background: var(--surface-2); }
+      .example::before { content: "→"; color: var(--muted-2); font-weight: 500; }
+      .actions { display: flex; align-items: center; gap: 10px; margin-top: 16px; }
+      .btn {
+        display: inline-flex; align-items: center; gap: 6px;
+        padding: 8px 14px; border: 1px solid var(--accent-border);
+        border-radius: var(--radius-sm); font: inherit; font-size: 13px; font-weight: 500;
+        color: var(--ink); background: var(--accent-bg); cursor: pointer;
+        transition: background 0.12s ease, border-color 0.12s ease, transform 0.06s ease;
+      }
+      .btn:hover:not(:disabled) { background: rgba(167,139,250,0.18); border-color: rgba(167,139,250,0.45); }
+      .btn:active:not(:disabled) { transform: translateY(1px); }
+      .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+      .kbd { font-family: "JetBrains Mono", ui-monospace, monospace; font-size: 11px; color: var(--muted); padding: 1px 5px; border: 1px solid var(--border); border-radius: 4px; background: var(--surface-2); }
+      .sec-note {
+        margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--border);
+        font-size: 12px; line-height: 1.55; color: var(--muted);
+      }
+      .sec-note b { color: var(--ink-2); font-weight: 500; }
+
+      .phases { padding: 14px 18px; border-bottom: 1px solid var(--border); }
+      .phases-row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+      .phase {
+        display: inline-flex; align-items: center; gap: 7px;
+        padding: 5px 10px; border-radius: var(--radius-sm);
+        font-size: 12.5px; font-weight: 450; color: var(--muted-2);
+        background: transparent; border: 1px solid var(--border);
+        transition: color 0.2s ease, background 0.2s ease, border-color 0.2s ease;
+      }
+      .phase[data-status="active"] { color: var(--ink); background: var(--accent-bg); border-color: var(--accent-border); }
+      .phase[data-status="done"]   { color: var(--ink-2); background: var(--success-bg); border-color: var(--success-border); }
+      .phase[data-status="error"]  { color: var(--danger); border-color: rgba(248,113,113,0.4); background: rgba(248,113,113,0.08); }
+      .phase .ind {
+        width: 12px; height: 12px; flex-shrink: 0; display: inline-block;
+        border-radius: 50%; border: 1.5px solid currentColor; opacity: 0.55;
+        position: relative;
+      }
+      .phase[data-status="active"] .ind { border-color: var(--accent); opacity: 1; }
+      .phase[data-status="active"] .ind::after {
+        content: ""; position: absolute; inset: -1.5px; border-radius: 50%;
+        border: 1.5px solid transparent; border-top-color: var(--accent);
+        animation: spin 0.7s linear infinite;
+      }
+      .phase[data-status="done"] .ind {
+        background: var(--success); border-color: var(--success); opacity: 1;
+      }
+      .phase[data-status="done"] .ind::after {
+        content: ""; position: absolute; left: 3px; top: 0px; width: 4px; height: 7px;
+        border: solid #08090a; border-width: 0 1.5px 1.5px 0; transform: rotate(45deg);
+      }
+      .phase-arrow { color: var(--muted-2); font-size: 11px; user-select: none; }
+      @keyframes spin { to { transform: rotate(360deg); } }
+
+      .timeline { flex: 1 1 auto; overflow-y: auto; padding: 4px 0; }
+      .timeline::-webkit-scrollbar { width: 8px; }
+      .timeline::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 4px; }
+      .timeline-empty { padding: 28px 18px; color: var(--muted-2); font-size: 13px; text-align: center; }
+      .step {
+        display: grid; grid-template-columns: 110px minmax(0, 1fr);
+        gap: 14px; align-items: baseline;
+        padding: 9px 18px; border-bottom: 1px solid var(--border);
+        animation: fadeIn 0.18s ease;
+      }
+      .step:last-child { border-bottom: 0; }
+      @keyframes fadeIn { from { opacity: 0; transform: translateY(2px); } to { opacity: 1; transform: translateY(0); } }
+      .step .tag {
+        display: inline-flex; align-items: center; gap: 6px;
+        padding: 2px 7px; border-radius: 4px;
+        font-family: "JetBrains Mono", ui-monospace, monospace;
+        font-size: 11px; font-weight: 500; letter-spacing: 0.01em;
+        text-transform: lowercase; line-height: 1.5;
+      }
+      .step .tag.exec     { background: rgba(167,139,250,0.12); color: var(--accent); }
+      .step .tag.write    { background: rgba(74,222,128,0.10); color: var(--success); }
+      .step .tag.read     { background: rgba(96,165,250,0.10); color: var(--info); }
+      .step .tag.output   { background: var(--surface-2); color: var(--muted); border: 1px solid var(--border); }
+      .step .tag.system   { background: var(--surface-2); color: var(--muted); }
+      .step .body {
+        font-family: "JetBrains Mono", ui-monospace, monospace;
+        font-size: 12.5px; line-height: 1.55; color: var(--ink-2);
+        white-space: pre-wrap; word-break: break-word;
+        max-height: 9.5em; overflow: hidden; position: relative;
+      }
+      .step .body.expanded { max-height: none; }
+      .step .body.clipped::after {
+        content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 24px;
+        background: linear-gradient(to bottom, transparent, var(--surface));
+        pointer-events: none;
+      }
+      .step .body.expanded::after { display: none; }
+      .step.click .body { cursor: pointer; }
+
+      .preview-pane {
+        margin: 14px 18px 18px; border: 1px solid var(--border); border-radius: var(--radius);
+        background: var(--surface-2); overflow: hidden; animation: fadeIn 0.25s ease;
+      }
+      .preview-pane .meta {
+        display: flex; align-items: center; gap: 10px; padding: 10px 14px;
+        border-bottom: 1px solid var(--border); font-size: 13px;
+      }
+      .preview-pane .badge {
+        padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 500;
+        background: var(--success-bg); color: var(--success); border: 1px solid var(--success-border);
+        letter-spacing: 0.02em; text-transform: uppercase;
+      }
+      .preview-pane a { color: var(--ink-2); text-decoration: none; word-break: break-all; flex: 1; }
+      .preview-pane a:hover { color: var(--accent); }
+      .preview-pane .ttl { color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+      .icon-btn {
+        display: inline-flex; align-items: center; justify-content: center;
+        width: 26px; height: 26px; padding: 0; background: transparent;
+        border: 1px solid var(--border); border-radius: 5px; cursor: pointer;
+        color: var(--muted); transition: color 0.12s, background 0.12s, border-color 0.12s;
+      }
+      .icon-btn:hover { color: var(--ink); background: var(--surface-3); border-color: var(--border-strong); }
+      .preview-pane iframe {
+        display: block; width: 100%; height: 540px; border: 0; background: white;
+      }
+
+      .error-banner {
+        margin: 14px 18px; padding: 10px 14px;
+        background: rgba(248,113,113,0.08); border: 1px solid rgba(248,113,113,0.28);
+        border-radius: var(--radius-sm); color: var(--danger); font-size: 13px;
+        font-family: "JetBrains Mono", ui-monospace, monospace;
+      }
     </style>
   </head>
   <body>
     <main>
       <header>
-        <h1>Vibe Preview</h1>
-        <p class="subtitle">Describe a small web app. The agent scaffolds it inside a fresh <b>InstaVM</b> microVM, serves it on port 8080, and we hand you a public TLS preview URL backed by an InstaVM share. The model runs here; the sandbox runs the code.</p>
+        <div class="brand"><span class="dot"></span> Vibe Preview &middot; OpenAI Agents SDK on InstaVM</div>
+        <h1>Build a small web app from a prompt.</h1>
+        <p class="subtitle">The agent scaffolds your app inside a fresh <b>InstaVM</b> microVM, serves it on port 8080, and hands you a public TLS URL backed by an InstaVM share. The model runs in this orchestrator; the sandbox runs the code &mdash; with no API keys and no internet egress.</p>
         <div class="chips">
-          <span class="chip">OpenAI Agents SDK</span>
-          <span class="chip">InstaVM sandbox provider</span>
-          <span class="chip">Live TLS share</span>
+          <span class="chip">Per-request microVM</span>
           <span class="chip">No keys in sandbox</span>
+          <span class="chip">PyPI / apt mirrors only</span>
+          <span class="chip">Live TLS share</span>
         </div>
       </header>
       <div class="grid">
-        <section class="glass">
+        <section class="card input-card">
           <h2>Describe your app</h2>
           <label for="prompt">Prompt</label>
           <textarea id="prompt" placeholder="A retro-styled tip calculator with split-by-N controls, dark mode, and a sticky total card.">A retro-styled tip calculator with split-by-N controls, dark mode, and a sticky total card. Pure HTML/CSS/JS, no frameworks.</textarea>
           <div class="examples">
-            <div class="example" data-prompt="A landing page for an indie coffee shop called 'Bean Drop'. Hero with big serif title, opening hours, menu in three columns. Pure HTML/CSS, no frameworks.">Coffee shop landing page</div>
-            <div class="example" data-prompt="A markdown preview tool. Textarea on the left, rendered preview on the right, both scroll-synced. Pure HTML/CSS/JS only, write a tiny markdown subset (headings, bold, italic, code, links).">Markdown preview tool</div>
-            <div class="example" data-prompt="A persistent todo list using sqlite3 served by a Python http.server-style backend. Add, toggle, delete. Single page, pure CSS, no frameworks.">SQLite todo list</div>
+            <button class="example" data-prompt="A landing page for an indie coffee shop called 'Bean Drop'. Hero with big serif title, opening hours, menu in three columns. Pure HTML/CSS, no frameworks.">Coffee shop landing page</button>
+            <button class="example" data-prompt="A markdown preview tool. Textarea on the left, rendered preview on the right, both scroll-synced. Pure HTML/CSS/JS only, write a tiny markdown subset (headings, bold, italic, code, links).">Markdown preview tool</button>
+            <button class="example" data-prompt="A persistent todo list using sqlite3 served by a Python http.server-style backend. Add, toggle, delete. Single page, pure CSS, no frameworks.">SQLite todo list</button>
+            <button class="example" data-prompt="A FastAPI app with two endpoints: GET / returns a simple HTML page, POST /quote returns a JSON random quote from a list. Install flask or fastapi via pip. Show I can install dependencies.">FastAPI with pip install</button>
           </div>
-          <button id="build">Build &amp; Preview</button>
-          <div class="status-row">
-            <span class="pulse-dot" id="dot"></span>
-            <span id="status"></span>
+          <div class="actions">
+            <button class="btn" id="build">Build &amp; Preview</button>
+            <span class="kbd">&#x2318; Enter</span>
           </div>
           <div class="sec-note">
-            <b>Security model.</b> The OpenAI key lives only here in the
-            orchestrator &mdash; it never enters the child sandbox. The sandbox
-            has no internet egress (only PyPI/apt mirrors), so a runaway agent
-            cannot exfiltrate. Each preview lives ~15 minutes in a disposable
-            microVM, then the VM is destroyed.
+            <b>Security model.</b> Your <code>OPENAI_API_KEY</code> and <code>INSTAVM_API_KEY</code> stay in this orchestrator. The child sandbox sees only your prompt, has no internet egress, and is destroyed after ~15 minutes.
           </div>
         </section>
-        <section class="glass">
-          <h2>Build timeline</h2>
+        <section class="card output-card">
+          <div class="panel-header">
+            <span id="output-title">Build timeline</span>
+            <span class="meta" id="output-meta"></span>
+          </div>
+          <div class="phases" id="phases-host" style="display:none;">
+            <div class="phases-row" id="phases-row"></div>
+          </div>
           <div class="timeline" id="timeline">
-            <div class="empty">Click <b>Build &amp; Preview</b> to watch the agent work.</div>
+            <div class="timeline-empty" id="empty-state">Click <b>Build &amp; Preview</b> to watch the agent work.</div>
           </div>
           <div id="preview-host"></div>
+          <div id="error-host"></div>
         </section>
       </div>
     </main>
     <script>
       const promptEl = document.getElementById("prompt");
       const buildBtn = document.getElementById("build");
-      const status = document.getElementById("status");
-      const dot = document.getElementById("dot");
       const timeline = document.getElementById("timeline");
+      const emptyState = document.getElementById("empty-state");
+      const phasesHost = document.getElementById("phases-host");
+      const phasesRow = document.getElementById("phases-row");
       const previewHost = document.getElementById("preview-host");
+      const errorHost = document.getElementById("error-host");
+      const outputMeta = document.getElementById("output-meta");
+
+      const phaseEls = new Map();
+      let stepCount = 0;
+      let runStart = 0;
 
       document.querySelectorAll(".example").forEach(el => {
-        el.addEventListener("click", () => { promptEl.value = el.dataset.prompt; });
+        el.addEventListener("click", () => { promptEl.value = el.dataset.prompt; promptEl.focus(); });
       });
 
-      function addStep(label, body) {
-        if (timeline.firstChild && timeline.firstChild.classList && timeline.firstChild.classList.contains("empty")) {
-          timeline.innerHTML = "";
-        }
+      promptEl.addEventListener("keydown", (e) => {
+        if ((e.metaKey || e.ctrlKey) && e.key === "Enter" && !buildBtn.disabled) build();
+      });
+
+      function setPhases(phases) {
+        phasesRow.innerHTML = "";
+        phaseEls.clear();
+        phases.forEach((p, i) => {
+          if (i > 0) {
+            const arrow = document.createElement("span");
+            arrow.className = "phase-arrow"; arrow.textContent = "›";
+            phasesRow.appendChild(arrow);
+          }
+          const el = document.createElement("span");
+          el.className = "phase"; el.dataset.status = "pending";
+          el.dataset.id = p.id;
+          el.innerHTML = `<span class="ind"></span><span class="lbl"></span>`;
+          el.querySelector(".lbl").textContent = p.label;
+          phasesRow.appendChild(el);
+          phaseEls.set(p.id, el);
+        });
+        phasesHost.style.display = "block";
+      }
+
+      function updatePhase(id, label, status) {
+        const el = phaseEls.get(id);
+        if (!el) return;
+        el.dataset.status = status;
+        if (label) el.querySelector(".lbl").textContent = label;
+      }
+
+      function classifyTool(name) {
+        const n = String(name).toLowerCase();
+        if (n.includes("apply_patch") || n.includes("write") || n.includes("create") || n.includes("edit")) return "write";
+        if (n.includes("read") || n.includes("cat") || n.includes("ls") || n.includes("find")) return "read";
+        if (n.includes("exec") || n.includes("shell") || n.includes("command") || n.includes("bash")) return "exec";
+        return "exec";
+      }
+
+      function addStep(kind, tagText, body) {
+        if (emptyState && emptyState.parentNode) emptyState.remove();
         const div = document.createElement("div");
-        div.className = "step";
-        div.innerHTML = `<div class="label"></div><div class="body"></div>`;
-        div.querySelector(".label").textContent = label;
-        div.querySelector(".body").textContent = body;
+        div.className = "step click";
+        div.innerHTML = `<span class="tag ${kind}"></span><div class="body clipped"></div>`;
+        div.querySelector(".tag").textContent = tagText;
+        const bodyEl = div.querySelector(".body");
+        bodyEl.textContent = body || "";
+        // Only show clip gradient if content actually overflows.
+        requestAnimationFrame(() => {
+          if (bodyEl.scrollHeight <= bodyEl.clientHeight + 2) bodyEl.classList.remove("clipped");
+        });
+        div.addEventListener("click", () => {
+          bodyEl.classList.toggle("expanded");
+          if (bodyEl.classList.contains("expanded")) bodyEl.classList.remove("clipped");
+        });
         timeline.appendChild(div);
+        stepCount += 1;
+        outputMeta.textContent = `${stepCount} step${stepCount === 1 ? "" : "s"}`;
         timeline.scrollTop = timeline.scrollHeight;
+      }
+
+      function showError(msg) {
+        errorHost.innerHTML = `<div class="error-banner"></div>`;
+        errorHost.firstChild.textContent = msg;
       }
 
       function renderPreview(p) {
@@ -240,57 +450,78 @@ HTML = """<!doctype html>
         const ttl = p.ttl_seconds || 900;
         const expiresAt = Date.now() + ttl * 1000;
         if (!/^https?:\\/\\//i.test(url)) {
-          status.textContent = "Preview URL rejected (unsafe scheme).";
+          showError("Preview URL rejected (unsafe scheme).");
           return;
         }
         const safeUrl = url.replace(/[<>"']/g, "");
         previewHost.innerHTML = `
-          <div class="preview">
+          <div class="preview-pane">
             <div class="meta">
-              <span class="badge">READY</span>
+              <span class="badge">Ready</span>
               <a href="${safeUrl}" target="_blank" rel="noopener">${safeUrl}</a>
               <span class="ttl" id="ttl"></span>
+              <button class="icon-btn" id="copy-btn" title="Copy URL">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+              </button>
+              <a class="icon-btn" href="${safeUrl}" target="_blank" rel="noopener" title="Open in new tab">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+              </a>
             </div>
             <iframe src="${safeUrl}" loading="lazy" sandbox="allow-scripts allow-same-origin allow-forms"></iframe>
           </div>
         `;
+        document.getElementById("copy-btn").addEventListener("click", () => {
+          navigator.clipboard?.writeText(safeUrl);
+        });
         const ttlEl = document.getElementById("ttl");
         function tick() {
           const remaining = Math.max(0, Math.floor((expiresAt - Date.now()) / 1000));
           const m = Math.floor(remaining / 60);
           const s = remaining % 60;
-          ttlEl.textContent = `expires in ${m}m ${s.toString().padStart(2, "0")}s`;
+          ttlEl.textContent = `${m}:${s.toString().padStart(2, "0")} left`;
           if (remaining > 0) setTimeout(tick, 1000);
           else ttlEl.textContent = "expired";
         }
         tick();
       }
 
-      async function build() {
-        buildBtn.disabled = true;
-        status.textContent = "Provisioning sandbox\u2026";
-        dot.classList.add("active");
+      function resetUI() {
         timeline.innerHTML = "";
         previewHost.innerHTML = "";
+        errorHost.innerHTML = "";
+        phasesRow.innerHTML = "";
+        phasesHost.style.display = "none";
+        phaseEls.clear();
+        stepCount = 0;
+        outputMeta.textContent = "";
+        const empty = document.createElement("div");
+        empty.id = "empty-state"; empty.className = "timeline-empty";
+        empty.textContent = "Connecting\u2026";
+        timeline.appendChild(empty);
+      }
+
+      async function build() {
+        if (!promptEl.value.trim()) { promptEl.focus(); return; }
+        buildBtn.disabled = true;
+        resetUI();
+        runStart = Date.now();
 
         let response;
         try {
           response = await fetch("/api/build", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ prompt: promptEl.value || "" }),
+            body: JSON.stringify({ prompt: promptEl.value }),
           });
         } catch (e) {
-          status.textContent = "Connection failed.";
-          dot.classList.remove("active");
+          showError("Connection failed. Is the orchestrator reachable?");
           buildBtn.disabled = false;
           return;
         }
         if (!response.ok) {
           let msg = "Build failed.";
           try { msg = (await response.json()).detail || msg; } catch {}
-          status.textContent = msg;
-          dot.classList.remove("active");
+          showError(msg);
           buildBtn.disabled = false;
           return;
         }
@@ -313,32 +544,34 @@ HTML = """<!doctype html>
               if (line.startsWith("event:")) event = line.slice(6).trim();
               else if (line.startsWith("data:")) data.push(line.slice(5).trim());
             }
-            const payload = data.join("\\n");
-            handleEvent(event, payload);
+            handleEvent(event, data.join("\\n"));
           }
         }
         buildBtn.disabled = false;
-        dot.classList.remove("active");
+        const sec = ((Date.now() - runStart) / 1000).toFixed(1);
+        outputMeta.textContent = `${stepCount} step${stepCount === 1 ? "" : "s"} \u00B7 ${sec}s`;
       }
 
       function handleEvent(event, raw) {
         let data;
         try { data = JSON.parse(raw); } catch { data = { text: raw }; }
-        if (event === "phase") {
-          status.textContent = data.message || "";
+        if (event === "phases") {
+          setPhases(data.phases || []);
+          if (emptyState && emptyState.parentNode) emptyState.remove();
+        } else if (event === "phase") {
+          updatePhase(data.id, data.label, data.status);
         } else if (event === "tool_called") {
-          addStep(`tool: ${data.name || "?"}`, data.args || "");
+          const kind = classifyTool(data.name);
+          addStep(kind, data.name || "tool", data.args || "");
         } else if (event === "tool_output") {
-          addStep("tool output", (data.output || "").slice(0, 800));
+          addStep("output", "output", (data.output || "").slice(0, 1500));
         } else if (event === "preview") {
-          status.textContent = "Preview ready.";
           renderPreview(data);
         } else if (event === "error") {
-          status.textContent = data.message || "Error.";
-        } else if (event === "done") {
-          if (!status.textContent || /provisioning|running/i.test(status.textContent)) {
-            status.textContent = "Done.";
-          }
+          showError(data.message || "Build failed.");
+          phaseEls.forEach((el) => {
+            if (el.dataset.status === "active") el.dataset.status = "error";
+          });
         }
       }
 
@@ -396,6 +629,18 @@ def _validate_keys() -> tuple[str, str]:
 def _sse(event: str, data: dict[str, Any] | str) -> bytes:
     payload = data if isinstance(data, str) else json.dumps(data, default=str)
     return f"event: {event}\ndata: {payload}\n\n".encode("utf-8")
+
+
+def _phase(phase_id: str, label: str, status: str, **extra: Any) -> bytes:
+    """Emit an SSE phase event with a stable id + status the UI can track.
+
+    status: "active" | "done" | "error". The UI keeps a list of phase ids
+    in declaration order and renders each as a step in the tracker.
+    """
+    payload: dict[str, Any] = {"id": phase_id, "label": label, "status": status}
+    if extra:
+        payload.update(extra)
+    return _sse("phase", payload)
 
 
 HEARTBEAT_INTERVAL_S = float(os.environ.get("VIBE_SSE_HEARTBEAT_S", "8"))
@@ -468,7 +713,20 @@ async def _delayed_delete(
 
 
 async def _build_stream(prompt: str) -> AsyncIterator[bytes]:
-    yield _sse("phase", {"message": "Provisioning sandbox\u2026"})
+    # Declare phases up front so the UI can render the full tracker
+    # immediately, even before any of them is active.
+    yield _sse(
+        "phases",
+        {
+            "phases": [
+                {"id": "provision", "label": "Provision sandbox"},
+                {"id": "boot", "label": "Boot microVM"},
+                {"id": "build", "label": "Build app"},
+                {"id": "preview", "label": "Start preview"},
+            ]
+        },
+    )
+    yield _phase("provision", "Provision sandbox", "active")
 
     manifest = Manifest(
         entries={
@@ -495,9 +753,13 @@ async def _build_stream(prompt: str) -> AsyncIterator[bytes]:
                 allow_package_managers=True,
             ),
         )
+        yield _phase("provision", "Provision sandbox", "done")
+        yield _phase("boot", "Boot microVM", "active")
+
         await sandbox.start()
 
-        yield _sse("phase", {"message": "Sandbox running\u2026"})
+        yield _phase("boot", "Boot microVM", "done")
+        yield _phase("build", "Build app", "active")
 
         agent = SandboxAgent(
             name="Vibe Builder",
@@ -540,6 +802,9 @@ async def _build_stream(prompt: str) -> AsyncIterator[bytes]:
                             output = str(output)
                     yield _sse("tool_output", {"output": output[:1500]})
 
+        yield _phase("build", "Build app", "done")
+        yield _phase("preview", "Start preview", "active")
+
         endpoint = await sandbox.resolve_exposed_port(PREVIEW_PORT)
         scheme = "https" if endpoint.tls else "http"
         if scheme not in ("http", "https"):
@@ -561,6 +826,7 @@ async def _build_stream(prompt: str) -> AsyncIterator[bytes]:
         task.add_done_callback(_background_tasks.discard)
         sandbox = None  # ownership transferred to the cleanup task
 
+        yield _phase("preview", "Start preview", "done")
         yield _sse("preview", {"url": url, "ttl_seconds": PREVIEW_TTL_SECONDS})
     except Exception as exc:
         logger.exception("build failed")
