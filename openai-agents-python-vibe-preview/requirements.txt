@@ -1,0 +1,4 @@
+fastapi==0.128.8
+uvicorn[standard]==0.39.0
+openai-agents==0.14.1
+instavm[agents]>=0.21.0,<0.30

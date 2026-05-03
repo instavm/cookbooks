@@ -1,0 +1,50 @@
+schema_version: 1
+slug: openai-agents-python-injection-scanner
+title: Injection Scanner
+version: "0.1.0"
+summary: Streaming prompt-injection scanner that runs adversarial tooling against an uploaded document inside a fresh, egress-restricted InstaVM child sandbox.
+category: agents
+runtime: python-fastapi
+deploy:
+  kind: upload_and_run
+vm:
+  memory_mb: 2048
+  vcpu_count: 2
+  timeout_seconds: 7200
+app:
+  port: 8000
+  healthcheck_path: /health
+  share_public_default: true
+  readiness_timeout_seconds: 240
+run:
+  workdir: .
+  start_command: python -m uvicorn app:app --host 0.0.0.0 --port 8000
+secrets:
+  - name: openai_api_key
+    required: true
+    prompt: OpenAI API key (used by the orchestrator only — never enters the child sandbox)
+    env_name: OPENAI_API_KEY
+  - name: instavm_api_key
+    required: true
+    prompt: InstaVM API key (used by the orchestrator to spawn per-request child sandboxes)
+    env_name: INSTAVM_API_KEY
+post_deploy_notes:
+  - Drop a Markdown, JSON, HTML, or text file in the browser. Each scan runs in a fresh disposable microVM with no API keys and no internet egress.
+  - Set OPENAI_MODEL to choose a different hosted model (default gpt-4.1-mini).
+  - Set INJECTION_MAX_BYTES to override the 256 KB upload cap.
+build:
+  context: .
+  dockerfile: Dockerfile
+artifact:
+  oci_image: docker.io/instavm/cookbooks-openai-agents-python-injection-scanner:0.1.0
+  snapshot_name: cookbook/openai-agents-python-injection-scanner:0.1.0
+  snapshot_visibility: public_system
+source:
+  include:
+    - app.py
+    - requirements.txt
+    - README.md
+    - Dockerfile
+    - instavm.yaml
+  exclude: []
+  setup_command: python -m pip install --no-cache-dir -r requirements.txt
