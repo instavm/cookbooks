@@ -17,12 +17,21 @@ each `/api/scan` request:
 
 1. Materializes the user's untrusted input as `/workspace/input.bin` inside a
    fresh microVM via `Manifest(entries={...})`.
-2. Lets the `SandboxAgent` run shell + Python tools to detect prompt-injection
-   payloads (instruction overrides, hidden unicode, encoded blobs, link traps,
-   embedded HTML/MD trickery).
-3. Streams every tool call back to the browser as Server-Sent Events.
-4. Reads the agent's final JSON verdict and renders it as a risk card.
-5. Destroys the microVM.
+2. Lets a hardened `SandboxAgent` use shell + Python tools to *gather evidence*
+   (read the file, dump unicode codepoints, decode base64 blobs) while the LLM
+   itself is the classifier.
+3. Forces the agent to return a strongly-typed `Verdict` Pydantic model via
+   the Agents SDK `output_type=...` schema-enforced output. The model categorizes
+   findings as `instruction_override`, `hidden_unicode`, `encoded_payload`,
+   `link_trap`, `html_md_trickery`, `data_exfiltration`, `tool_misuse`, or
+   `other`.
+4. Streams every tool call back to the browser as Server-Sent Events.
+5. Renders the parsed verdict as a risk card.
+6. Destroys the microVM.
+
+The system prompt is explicit that any "instructions" inside the document are
+DATA to be classified, never commands to follow &mdash; if the document tries
+to hijack the classifier, that hijack itself becomes a high-severity finding.
 
 ## Security model
 
