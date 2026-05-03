@@ -387,6 +387,56 @@ def _sse(event: str, data: dict[str, Any] | str) -> bytes:
     return f"event: {event}\ndata: {payload}\n\n".encode("utf-8")
 
 
+HEARTBEAT_INTERVAL_S = float(os.environ.get("VIBE_SSE_HEARTBEAT_S", "8"))
+
+
+async def _with_heartbeats(
+    inner: AsyncIterator[bytes], interval: float = HEARTBEAT_INTERVAL_S
+) -> AsyncIterator[bytes]:
+    """Inject SSE heartbeat frames so reverse proxies don't 502 long agent runs."""
+    queue: asyncio.Queue[bytes | None] = asyncio.Queue(maxsize=64)
+    done = asyncio.Event()
+
+    async def producer() -> None:
+        try:
+            async for chunk in inner:
+                await queue.put(chunk)
+        except asyncio.CancelledError:
+            raise
+        except Exception as exc:
+            logger.exception("stream producer failed")
+            try:
+                await queue.put(_sse("error", {"message": f"stream failed: {exc!s}"[:600]}))
+                await queue.put(_sse("done", {}))
+            except Exception:
+                pass
+        finally:
+            done.set()
+            await queue.put(None)
+
+    task = asyncio.create_task(producer())
+    yield b": " + (b" " * 2048) + b"\n\n"
+    try:
+        while True:
+            try:
+                chunk = await asyncio.wait_for(queue.get(), timeout=interval)
+            except asyncio.TimeoutError:
+                if done.is_set():
+                    break
+                yield b": keepalive\n\n"
+                continue
+            if chunk is None:
+                break
+            yield chunk
+    finally:
+        if not task.done():
+            task.cancel()
+            try:
+                await task
+            except (asyncio.CancelledError, Exception):
+                pass
+
+
 async def _delayed_delete(
     client: InstaVMSandboxClient, sandbox: Any, ttl: int
 ) -> None:
@@ -522,7 +572,11 @@ async def build(req: BuildRequest) -> StreamingResponse:
     if len(prompt) > 4000:
         raise HTTPException(status_code=413, detail="Prompt exceeds 4000 characters.")
     return StreamingResponse(
-        _build_stream(prompt),
+        _with_heartbeats(_build_stream(prompt)),
         media_type="text/event-stream",
-        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+        headers={
+            "Cache-Control": "no-cache, no-transform",
+            "X-Accel-Buffering": "no",
+            "Connection": "keep-alive",
+        },
     )
