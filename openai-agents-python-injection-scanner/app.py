@@ -471,7 +471,7 @@ Hello! This is a friendly README.
             <div class="phases-row" id="phases-row"></div>
           </div>
           <div class="timeline" id="timeline">
-            <div class="timeline-empty" id="empty-state">Run a scan to see the agent&rsquo;s tool calls in real time.</div>
+            <div class="timeline-empty">Run a scan to see the agent&rsquo;s tool calls in real time.</div>
           </div>
           <div id="verdict-host"></div>
           <div id="error-host"></div>
@@ -489,7 +489,6 @@ Hello! This is a friendly README.
       const fileClearBtn = document.getElementById("file-clear");
       const scanBtn = document.getElementById("scan");
       const timeline = document.getElementById("timeline");
-      const emptyState = document.getElementById("empty-state");
       const phasesHost = document.getElementById("phases-host");
       const phasesRow = document.getElementById("phases-row");
       const verdictHost = document.getElementById("verdict-host");
@@ -500,6 +499,11 @@ Hello! This is a friendly README.
       let stepCount = 0;
       let runStart = 0;
       let pickedFile = null;
+
+      function clearEmpty() {
+        const e = timeline.querySelector(".timeline-empty");
+        if (e) e.remove();
+      }
 
       function fmtBytes(n) {
         if (n < 1024) return `${n} B`;
@@ -571,7 +575,7 @@ Hello! This is a friendly README.
       }
 
       function addStep(kind, tagText, body) {
-        if (emptyState && emptyState.parentNode) emptyState.remove();
+        clearEmpty();
         const div = document.createElement("div");
         div.className = "step click";
         div.innerHTML = `<span class="tag ${kind}"></span><div class="body clipped"></div>`;
@@ -641,7 +645,7 @@ Hello! This is a friendly README.
         stepCount = 0;
         outputMeta.textContent = "";
         const empty = document.createElement("div");
-        empty.id = "empty-state"; empty.className = "timeline-empty";
+        empty.className = "timeline-empty";
         empty.textContent = "Connecting\u2026";
         timeline.appendChild(empty);
       }
@@ -703,7 +707,7 @@ Hello! This is a friendly README.
         try { data = JSON.parse(raw); } catch { data = { text: raw }; }
         if (event === "phases") {
           setPhases(data.phases || []);
-          if (emptyState && emptyState.parentNode) emptyState.remove();
+          clearEmpty();
         } else if (event === "phase") {
           updatePhase(data.id, data.label, data.status);
         } else if (event === "tool_called") {

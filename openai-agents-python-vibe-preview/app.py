@@ -353,7 +353,7 @@ HTML = """<!doctype html>
             <div class="phases-row" id="phases-row"></div>
           </div>
           <div class="timeline" id="timeline">
-            <div class="timeline-empty" id="empty-state">Click <b>Build &amp; Preview</b> to watch the agent work.</div>
+            <div class="timeline-empty">Click <b>Build &amp; Preview</b> to watch the agent work.</div>
           </div>
           <div id="preview-host"></div>
           <div id="error-host"></div>
@@ -364,7 +364,6 @@ HTML = """<!doctype html>
       const promptEl = document.getElementById("prompt");
       const buildBtn = document.getElementById("build");
       const timeline = document.getElementById("timeline");
-      const emptyState = document.getElementById("empty-state");
       const phasesHost = document.getElementById("phases-host");
       const phasesRow = document.getElementById("phases-row");
       const previewHost = document.getElementById("preview-host");
@@ -374,6 +373,11 @@ HTML = """<!doctype html>
       const phaseEls = new Map();
       let stepCount = 0;
       let runStart = 0;
+
+      function clearEmpty() {
+        const e = timeline.querySelector(".timeline-empty");
+        if (e) e.remove();
+      }
 
       document.querySelectorAll(".example").forEach(el => {
         el.addEventListener("click", () => { promptEl.value = el.dataset.prompt; promptEl.focus(); });
@@ -419,7 +423,7 @@ HTML = """<!doctype html>
       }
 
       function addStep(kind, tagText, body) {
-        if (emptyState && emptyState.parentNode) emptyState.remove();
+        clearEmpty();
         const div = document.createElement("div");
         div.className = "step click";
         div.innerHTML = `<span class="tag ${kind}"></span><div class="body clipped"></div>`;
@@ -495,7 +499,7 @@ HTML = """<!doctype html>
         stepCount = 0;
         outputMeta.textContent = "";
         const empty = document.createElement("div");
-        empty.id = "empty-state"; empty.className = "timeline-empty";
+        empty.className = "timeline-empty";
         empty.textContent = "Connecting\u2026";
         timeline.appendChild(empty);
       }
@@ -557,7 +561,7 @@ HTML = """<!doctype html>
         try { data = JSON.parse(raw); } catch { data = { text: raw }; }
         if (event === "phases") {
           setPhases(data.phases || []);
-          if (emptyState && emptyState.parentNode) emptyState.remove();
+          clearEmpty();
         } else if (event === "phase") {
           updatePhase(data.id, data.label, data.status);
         } else if (event === "tool_called") {
