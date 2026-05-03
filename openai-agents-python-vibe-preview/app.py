@@ -4,16 +4,15 @@ import asyncio
 import json
 import logging
 import os
-import time
+import re
+from contextlib import asynccontextmanager
 from typing import Any, AsyncIterator
-from urllib.parse import urlsplit
 
 from agents import RunConfig, Runner
 from agents.sandbox import Manifest, SandboxAgent, SandboxRunConfig
 from agents.sandbox.entries import File
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import HTMLResponse, StreamingResponse
-from openai.types.responses import ResponseTextDeltaEvent
 from pydantic import BaseModel
 
 from instavm.integrations.openai_agents import (
@@ -29,6 +28,12 @@ PREVIEW_PORT = 8080
 PREVIEW_TTL_SECONDS = int(os.environ.get("VIBE_PREVIEW_TTL_SECONDS", "900"))
 SANDBOX_MEMORY_MB = int(os.environ.get("VIBE_SANDBOX_MEMORY_MB", "2048"))
 SANDBOX_TIMEOUT = max(PREVIEW_TTL_SECONDS, 600)
+
+# Defensive allowlist for the sandbox endpoint host before we hand the URL
+# back to the client. The InstaVM API is the source of truth, but treating
+# its output as untrusted keeps a misbehaving control-plane response from
+# becoming a `javascript:` or attribute-breakout URL in the browser.
+_HOSTNAME_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9.\-]{0,253}$")
 
 
 def looks_like_placeholder_secret(value: str) -> bool:
@@ -231,9 +236,13 @@ HTML = """<!doctype html>
       }
 
       function renderPreview(p) {
-        const url = p.url || "";
+        const url = String(p.url || "");
         const ttl = p.ttl_seconds || 900;
         const expiresAt = Date.now() + ttl * 1000;
+        if (!/^https?:\\/\\//i.test(url)) {
+          status.textContent = "Preview URL rejected (unsafe scheme).";
+          return;
+        }
         const safeUrl = url.replace(/[<>"']/g, "");
         previewHost.innerHTML = `
           <div class="preview">
@@ -340,26 +349,28 @@ HTML = """<!doctype html>
 """
 
 
-app = FastAPI(title="Vibe Preview")
-
-# Track active preview sessions for graceful shutdown.
-# {session_id: (client, sandbox, expiry_epoch)}
-_active_sessions: dict[str, tuple[InstaVMSandboxClient, Any, float]] = {}
+# Track active preview sessions so we can release them on shutdown.
+# {session_id: (client, sandbox)}
+_active_sessions: dict[str, tuple[InstaVMSandboxClient, Any]] = {}
 _active_lock = asyncio.Lock()
 # Hold strong refs to fire-and-forget cleanup tasks so they aren't GC'd.
 _background_tasks: set[asyncio.Task] = set()
 
 
-@app.on_event("shutdown")
-async def _cleanup_active_sessions() -> None:
+@asynccontextmanager
+async def _lifespan(app: FastAPI) -> AsyncIterator[None]:
+    yield
     async with _active_lock:
-        items = list(_active_sessions.items())
+        items = list(_active_sessions.values())
         _active_sessions.clear()
-    for _, (client, sandbox, _) in items:
+    for client, sandbox in items:
         try:
             await client.delete(sandbox)
         except Exception:
             logger.exception("failed to clean up sandbox on shutdown")
+
+
+app = FastAPI(title="Vibe Preview", lifespan=_lifespan)
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -446,8 +457,7 @@ async def _delayed_delete(
     except asyncio.CancelledError:
         return
     async with _active_lock:
-        # Drop tracking entry whose sandbox matches.
-        for sid, (_, sb, _) in list(_active_sessions.items()):
+        for sid, (_, sb) in list(_active_sessions.items()):
             if sb is sandbox:
                 _active_sessions.pop(sid, None)
                 break
@@ -529,12 +539,13 @@ async def _build_stream(prompt: str) -> AsyncIterator[bytes]:
                         except Exception:
                             output = str(output)
                     yield _sse("tool_output", {"output": output[:1500]})
-            elif event.type == "raw_response_event":
-                if isinstance(event.data, ResponseTextDeltaEvent):
-                    pass
 
         endpoint = await sandbox.resolve_exposed_port(PREVIEW_PORT)
         scheme = "https" if endpoint.tls else "http"
+        if scheme not in ("http", "https"):
+            raise RuntimeError(f"unexpected sandbox endpoint scheme: {scheme!r}")
+        if not _HOSTNAME_RE.match(endpoint.host or ""):
+            raise RuntimeError(f"unexpected sandbox endpoint host: {endpoint.host!r}")
         port_part = ""
         if (endpoint.tls and endpoint.port not in (443, None)) or (
             not endpoint.tls and endpoint.port not in (80, None)
@@ -544,7 +555,7 @@ async def _build_stream(prompt: str) -> AsyncIterator[bytes]:
 
         sandbox_id = str(id(sandbox))
         async with _active_lock:
-            _active_sessions[sandbox_id] = (client, sandbox, time.time() + PREVIEW_TTL_SECONDS)
+            _active_sessions[sandbox_id] = (client, sandbox)
         task = asyncio.create_task(_delayed_delete(client, sandbox, PREVIEW_TTL_SECONDS))
         _background_tasks.add(task)
         task.add_done_callback(_background_tasks.discard)
