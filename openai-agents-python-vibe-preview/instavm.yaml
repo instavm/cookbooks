@@ -39,7 +39,7 @@ vault:
 post_deploy_notes:
   - Type a description of a small web app, watch the agent build it, and click the preview URL.
   - Each preview lives in a disposable InstaVM microVM with a public TLS share on port 8080.
-  - Before deploying, create an org vault and bind it to api.openai.com (one-time). See the root README "One-time vault setup" section.
+  - "Before deploying, bind an org vault to api.openai.com. Easy path (CLI ≥ 0.23.0): `instavm deploy .` will walk you through it. See the root README \"One-time vault setup\" section for the manual path."
   - Default preview lifetime is 15 minutes (set VIBE_PREVIEW_TTL_SECONDS to override).
 build:
   context: .

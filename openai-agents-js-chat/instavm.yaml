@@ -42,7 +42,7 @@ vault:
     - api.openai.com
 post_deploy_notes:
   - Open the root page and send a prompt through the chat UI.
-  - One-time vault setup (per org). See the root README "One-time vault setup" section. The cookbook itself never touches the real OpenAI key.
+  - "Before deploying, bind an org vault to api.openai.com. Easy path (CLI ≥ 0.23.0): run `instavm deploy .` and answer the bootstrap prompts; the CLI walks you through creating + populating the vault. The cookbook itself never touches the real OpenAI key."
 build:
   context: .
   dockerfile: Dockerfile

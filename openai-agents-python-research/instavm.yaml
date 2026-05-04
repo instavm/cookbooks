@@ -34,8 +34,8 @@ vault:
     - api.openai.com
 post_deploy_notes:
   - "This cookbook intentionally has only ONE secret. The OpenAI key never enters this VM — it lives in the org's InstaVM vault and the platform's egress proxy substitutes it on the wire."
-  - "Before deploy, set up your org vault once: `instavm vault create cookbook-org`, `instavm vault secret set <vault_id> OPENAI_KEY` (paste real key), `instavm vault service add <vault_id> --host api.openai.com --auth-type bearer --credential OPENAI_KEY`. Every InstaVM cookbook can then consume the same vault."
-  - "If the vault isn't configured, the homepage shows the four CLI commands — no need to redeploy after running them."
+  - "Easy path (CLI ≥ 0.23.0): `instavm deploy .` walks you through the bootstrap on first use — answer two prompts and paste your OpenAI key once. The CLI creates the vault, stores the credential under OPENAI_API_KEY, and binds api.openai.com automatically. Every other vault-aware cookbook in this repo then reuses the same binding."
+  - "Manual path: `instavm vault create cookbook-org`, `instavm vault secret set <vault_id> OPENAI_API_KEY`, `instavm vault service add <vault_id> --template openai`. If you didn't configure the vault, the homepage shows the recipe — no redeploy needed afterwards."
   - "Override OPENAI_MODEL, RESEARCH_MAX_TURNS, RESEARCH_MAX_VISITS, etc. via env vars at deploy time."
 build:
   context: .

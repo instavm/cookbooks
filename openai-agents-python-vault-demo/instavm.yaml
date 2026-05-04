@@ -33,7 +33,7 @@ vault:
   hosts:
     - api.openai.com
 post_deploy_notes:
-  - Before deploying, set up a vault via the CLI. See the cookbook README for the four-command walkthrough (vault create / secret set / service add / discover).
+  - "Before deploying, set up a vault. Easy path (CLI ≥ 0.23.0): `instavm deploy .` will walk you through it. The cookbook README also documents the manual four-command walkthrough (vault create / secret set / service add / discover)."
   - This cookbook intentionally has only ONE secret. The OpenAI key never enters this VM. If preflight fails to find a vault bound to api.openai.com, the UI will tell you exactly which CLI commands to run.
   - Override the placeholder name with VAULT_DEMO_PLACEHOLDER (defaults to OPENAI_KEY). Override the model with OPENAI_MODEL (defaults to gpt-5.4-nano).
 build:

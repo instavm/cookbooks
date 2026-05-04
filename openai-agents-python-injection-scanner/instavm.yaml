@@ -38,7 +38,7 @@ vault:
     - api.openai.com
 post_deploy_notes:
   - Drop a Markdown, JSON, HTML, or text file in the browser. Each scan runs in a fresh disposable microVM with no API keys and no internet egress.
-  - Before deploying, create an org vault and bind it to api.openai.com (one-time). See the root README "One-time vault setup" section.
+  - "Before deploying, bind an org vault to api.openai.com. Easy path (CLI ≥ 0.23.0): `instavm deploy .` will walk you through it. See the root README \"One-time vault setup\" section for the manual path."
   - Set OPENAI_MODEL to choose a different hosted model (default gpt-5.4-nano).
   - Set INJECTION_MAX_BYTES to override the 256 KB upload cap.
 build:

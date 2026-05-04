@@ -41,7 +41,7 @@ vault:
 post_deploy_notes:
   - Create a chat and send a first message from the browser UI.
   - The app keeps chat state in memory, so restarting the service resets conversations.
-  - Before deploying, create an org vault and bind it to api.anthropic.com (one-time). Use auth_type=api_key, header=x-api-key, credential=ANTHROPIC_KEY. See the root README "One-time vault setup" section.
+  - "Before deploying, bind an org vault to api.anthropic.com. Easy path (CLI ≥ 0.23.0): just run `instavm deploy .` and answer the bootstrap prompts; the CLI creates the vault, prompts for the Anthropic key via getpass, and binds the service automatically. Manual path: see the root README \"One-time vault setup\" section."
 build:
   context: .
   dockerfile: Dockerfile

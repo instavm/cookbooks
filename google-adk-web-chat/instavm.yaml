@@ -37,7 +37,7 @@ vault:
 post_deploy_notes:
   - Ask for itinerary, neighborhood, or travel planning help from the browser.
   - Set GOOGLE_MODEL before deploy if you want a different Gemini model.
-  - Before deploying, create an org vault and bind it to generativelanguage.googleapis.com (one-time). Use auth_type=api_key, header=x-goog-api-key, credential=GOOGLE_KEY. See the root README "One-time vault setup" section.
+  - "Before deploying, bind an org vault to generativelanguage.googleapis.com. Easy path (CLI ≥ 0.23.0): `instavm deploy .` will walk you through it. Manual path: bind with auth_type=header, header=x-goog-api-key, credential=GOOGLE_API_KEY (see root README)."
 build:
   context: .
   dockerfile: Dockerfile

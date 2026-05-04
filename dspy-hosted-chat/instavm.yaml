@@ -37,7 +37,7 @@ vault:
 post_deploy_notes:
   - By default the app uses a compact Gemma-family model through OpenRouter.
   - Set OPENAI_COMPAT_MODEL or OPENAI_COMPAT_API_BASE before deploy to use a different model or provider.
-  - Before deploying, create an org vault and bind it to openrouter.ai (one-time). Use auth_type=bearer with credential=OPENROUTER_KEY. See the root README "One-time vault setup" section.
+  - "Before deploying, bind an org vault to openrouter.ai. Easy path (CLI ≥ 0.23.0): `instavm deploy .` will walk you through it. Manual path: bind with auth_type=bearer, credential=OPENROUTER_API_KEY (see root README)."
 build:
   context: .
   dockerfile: Dockerfile

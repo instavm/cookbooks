@@ -77,40 +77,71 @@ Vault is **organization-scoped** — every VM your org launches inherits the bin
 
 Every cookbook that talks to a hosted LLM (`openai-agents-*`, `claude-simple-chatapp`, `dspy-hosted-chat`, `google-adk-web-chat`, …) reads its credentials from the same org-scoped InstaVM Vault. Real keys never enter the cookbook's VM: the orchestrator sees a literal placeholder string, and the platform's egress MITM proxy swaps it for the real value at TLS write time. Set this up **once** per org, then `instavm deploy` any cookbook without pasting credentials into a deploy form.
 
-> Requires `instavm` CLI ≥ 0.22.0 (auto-binds vaults whose service hosts match the cookbook's `vault.hosts`).
+> Requires `instavm` CLI ≥ 0.23.0 for the interactive bootstrap (`instavm vault setup` and `instavm deploy` self-bootstrap). 0.22.0 supports `vault.hosts` auto-binding without the bootstrap; older CLIs ignore the field.
+
+### Easiest path (since 0.23.0): let `instavm deploy` walk you through it
+
+`instavm.yaml` declares `vault.required: true` for every LLM cookbook in this repo, so `instavm deploy` will scan your org for a matching vault, and if none is bound, offer to create + populate one on the spot. The first time you deploy a vault-aware cookbook, the prompts look like this:
+
+```text
+$ cd openai-agents-python-research && instavm deploy .
+…
+  Scanning org vaults for api.openai.com
+  No vault covers: api.openai.com — entering interactive setup
+  • api.openai.com → ${OPENAI_API_KEY} (will use catalog template 'openai')
+Bootstrap a vault now and walk through 1 secret(s)? [Y/n] y
+No org vault matches the cookbook's hosts. Create a new vault named 'openai-agents-python-research-vault' now? [Y/n] y
+  Creating vault openai-agents-python-research-vault
+  Value for OpenAI (OPENAI_API_KEY): ********              ← getpass; not echoed, not in history
+  Stored OPENAI_API_KEY (value not echoed)
+  Bound template 'openai' → openai-agents-python-research-vault
+  Vault vlt_… ready
+  …continues with the actual deploy
+```
+
+The bootstrap is **idempotent** and **org-scoped**: re-deploying the same (or any other) vault-aware cookbook reuses the existing binding instead of prompting again. If you need to extend the same vault for a second provider (e.g. add Anthropic later), just `cd` into a cookbook that needs it and run `instavm deploy` — the CLI extends the existing vault rather than creating a new one.
+
+Want to provision the vault without spinning up a VM (e.g. in CI before non-interactive deploys)? Run the same flow standalone:
+
+```bash
+instavm vault setup ./openai-agents-python-research
+# → "already_covered" if the vault is wired up
+# → walks you through the prompts otherwise
+```
+
+Pass `--no-setup-vault` to `instavm deploy` to skip the prompt (useful for CI where no human is at the terminal); the deploy will then fail fast with the manual recipe below.
+
+### Manual setup (CI-friendly, or for CLIs older than 0.23.0)
 
 ```bash
 # 1. Create an org vault. Pick any name; cookbooks scan all org vaults.
 VAULT_ID=$(instavm vault create cookbook-org -j \
   | python3 -c "import sys,json; print(json.load(sys.stdin)['id'])")
 
-# 2. For each LLM you use, add a credential under the *placeholder name* the
-#    cookbooks expect, then bind it to the upstream host. The CLI prompts for
+# 2. For each LLM you use, add a credential under the *catalog credential key*
+#    (`OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `OPENROUTER_API_KEY`,
+#    `GOOGLE_API_KEY`), then bind it to the upstream host. The CLI prompts for
 #    the value via getpass so it never enters your shell history.
 
 # OpenAI (used by openai-agents-python-research, openai-agents-python-vault-demo,
 #         openai-agents-python-vibe-preview, openai-agents-python-injection-scanner,
 #         openai-agents-js-chat)
-instavm vault secret set  "$VAULT_ID" OPENAI_KEY
-instavm vault service add "$VAULT_ID" --host api.openai.com \
-  --auth-type bearer  --credential OPENAI_KEY
+instavm vault secret set  "$VAULT_ID" OPENAI_API_KEY
+instavm vault service add "$VAULT_ID" --template openai
 
-# Anthropic (used by claude-simple-chatapp). Anthropic uses the x-api-key
-# header, so bind as auth_type=api_key with header=x-api-key.
-instavm vault secret set  "$VAULT_ID" ANTHROPIC_KEY
-instavm vault service add "$VAULT_ID" --host api.anthropic.com \
-  --auth-type api_key --header x-api-key --credential ANTHROPIC_KEY
+# Anthropic (used by claude-simple-chatapp).
+instavm vault secret set  "$VAULT_ID" ANTHROPIC_API_KEY
+instavm vault service add "$VAULT_ID" --template anthropic
 
-# OpenRouter (used by dspy-hosted-chat). OpenRouter uses Bearer like OpenAI.
-instavm vault secret set  "$VAULT_ID" OPENROUTER_KEY
+# OpenRouter (used by dspy-hosted-chat). Custom host, bearer auth.
+instavm vault secret set  "$VAULT_ID" OPENROUTER_API_KEY
 instavm vault service add "$VAULT_ID" --host openrouter.ai \
-  --auth-type bearer  --credential OPENROUTER_KEY
+  --auth-type bearer --credential OPENROUTER_API_KEY
 
-# Google Gemini (used by google-adk-web-chat). Gemini's REST API accepts the
-# x-goog-api-key header, so bind as auth_type=api_key with that header.
-instavm vault secret set  "$VAULT_ID" GOOGLE_KEY
+# Google Gemini (used by google-adk-web-chat). Custom host, x-goog-api-key header.
+instavm vault secret set  "$VAULT_ID" GOOGLE_API_KEY
 instavm vault service add "$VAULT_ID" --host generativelanguage.googleapis.com \
-  --auth-type api_key --header x-goog-api-key --credential GOOGLE_KEY
+  --auth-type header --header x-goog-api-key --credential GOOGLE_API_KEY
 
 # 3. Verify (returns names + bound hosts; never returns secret values).
 instavm vault discover "$VAULT_ID"
@@ -122,10 +153,10 @@ After this, deploy any vault-aware cookbook with **only** the cookbook-specific 
 cd openai-agents-python-research
 instavm deploy .
 # CLI prompts for INSTAVM_API_KEY only; OpenAI calls hit the bound vault
-# transparently, and the deploy plan shows: "vault auto-binding: vlt_…".
+# transparently, and the deploy plan shows: "Binding api.openai.com via vault vlt_…".
 ```
 
-Pass `--vault VAULT_ID` to override auto-discovery (useful if you have multiple org vaults), or `--no-vault` to disable vault binding entirely. Cookbooks that use the vault pattern declare `vault.required: true` in their `instavm.yaml`; deploy fails fast with a setup hint if no matching vault is bound.
+Pass `--vault VAULT_ID` to override auto-discovery (useful if you have multiple org vaults), or `--no-vault` to disable vault binding entirely. Cookbooks that use the vault pattern declare `vault.required: true` in their `instavm.yaml`; deploy fails fast (or, on 0.23.0+, offers to bootstrap) when no matching vault is bound.
 
 ## Making existing cookbooks more interesting
 
