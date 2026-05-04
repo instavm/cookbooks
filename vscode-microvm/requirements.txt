@@ -1,0 +1,4 @@
+# Marker file for `instavm deploy` project-type detection.
+# This cookbook is built by the Dockerfile in this directory, which wraps
+# codercom/code-server. There are no Python dependencies to install at
+# deploy time; the upstream image already contains everything needed.

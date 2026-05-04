@@ -1,0 +1,57 @@
+schema_version: 1
+slug: vscode-microvm
+title: VS Code in a Microvm
+version: "0.1.0"
+summary: code-server (Apache-2.0) running inside a Firecracker microVM. Edit code in the browser; everything executes in a real KVM VM with a deny-by-default egress posture.
+category: dev-environment
+runtime: code-server
+deploy:
+  kind: upload_and_run
+vm:
+  memory_mb: 4096
+  vcpu_count: 2
+  timeout_seconds: 14400
+app:
+  port: 8080
+  healthcheck_path: /healthz
+  share_public_default: true
+  readiness_timeout_seconds: 180
+run:
+  workdir: .
+  start_command: code-server --bind-addr 0.0.0.0:8080 --auth password --disable-telemetry --disable-update-check $HOME/workspace
+secrets:
+  - name: code_server_password
+    required: true
+    prompt: Password for the in-browser editor login screen (any non-empty string)
+    env_name: PASSWORD
+post_deploy_notes:
+  - Open the share URL, enter the PASSWORD you set at deploy. Editor opens onto /workspace.
+  - Drop into a real Linux shell with the integrated terminal (Ctrl+`). Files, network, and processes live inside a Firecracker microVM, not a Docker container.
+  - To install extensions, use the Extensions panel inside code-server. Internet egress is required to reach the marketplace; if the VM is locked down, install via .vsix files.
+  - To bump code-server, edit the FROM line in Dockerfile and rerun `instavm deploy .`.
+build:
+  context: .
+  dockerfile: Dockerfile
+artifact:
+  oci_image: docker.io/instavm/cookbooks-vscode-microvm:0.1.0
+  snapshot_name: cookbook/vscode-microvm:0.1.0
+  snapshot_visibility: public_system
+source:
+  include:
+    - Dockerfile
+    - instavm.yaml
+    - README.md
+    - requirements.txt
+    - workspace
+  exclude: []
+  setup_command: |
+    set -euo pipefail
+    if ! command -v code-server >/dev/null 2>&1; then
+      apt-get update
+      DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends nodejs npm python3 make g++ git ca-certificates
+      npm install --global --omit=dev code-server@4.96.4
+    fi
+    mkdir -p "$HOME/workspace"
+    if [ -d workspace ] && [ ! -e "$HOME/workspace/WELCOME.md" ]; then
+      cp -r workspace/. "$HOME/workspace/"
+    fi
