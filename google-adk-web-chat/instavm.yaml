@@ -1,8 +1,8 @@
 schema_version: 1
 slug: google-adk-web-chat
 title: City Guide
-version: "0.1.0"
-summary: Travel planning chat for itineraries, neighborhoods, and timing advice.
+version: "0.2.0"
+summary: Travel planning chat for itineraries, neighborhoods, and timing advice. Uses the InstaVM Vault — no real Google/Gemini key enters this cookbook.
 category: agents
 runtime: python-fastapi
 deploy:
@@ -18,15 +18,26 @@ app:
   readiness_timeout_seconds: 180
 run:
   workdir: .
-  start_command: python -m uvicorn app:app --host 0.0.0.0 --port 8000
-secrets:
-  - name: google_api_key
-    required: true
-    prompt: Google API key for Gemini
-    env_name: GOOGLE_API_KEY
+  # GOOGLE_API_KEY is intentionally a placeholder string. The platform's egress
+  # MITM proxy substitutes the real credential from the bound org vault at TLS
+  # write time, so the real key never enters this VM. CLI ≥ 0.22.0 auto-binds
+  # any vault with a service mapping for generativelanguage.googleapis.com
+  # (see vault: below). The vault binding must use auth_type=api_key with
+  # header x-goog-api-key and a credential named GOOGLE_KEY.
+  start_command: >-
+    : "${GOOGLE_API_KEY:=GOOGLE_KEY}" &&
+    export GOOGLE_API_KEY &&
+    python -m uvicorn app:app --host 0.0.0.0 --port 8000
+secrets: []
+# Auto-bind any org vault that has a service mapping for these hosts.
+vault:
+  required: true
+  hosts:
+    - generativelanguage.googleapis.com
 post_deploy_notes:
   - Ask for itinerary, neighborhood, or travel planning help from the browser.
   - Set GOOGLE_MODEL before deploy if you want a different Gemini model.
+  - Before deploying, create an org vault and bind it to generativelanguage.googleapis.com (one-time). Use auth_type=api_key, header=x-goog-api-key, credential=GOOGLE_KEY. See the root README "One-time vault setup" section.
 build:
   context: .
   dockerfile: Dockerfile

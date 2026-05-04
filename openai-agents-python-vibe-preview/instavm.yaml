@@ -1,8 +1,8 @@
 schema_version: 1
 slug: openai-agents-python-vibe-preview
 title: Vibe Preview
-version: "0.1.0"
-summary: Describe a small web app and watch an agent build it inside a fresh InstaVM microVM, then click a live preview URL backed by an InstaVM share.
+version: "0.2.0"
+summary: Describe a small web app and watch an agent build it inside a fresh InstaVM microVM, then click a live preview URL backed by an InstaVM share. Uses the InstaVM Vault — no real OpenAI key enters this cookbook.
 category: agents
 runtime: python-fastapi
 deploy:
@@ -18,19 +18,28 @@ app:
   readiness_timeout_seconds: 240
 run:
   workdir: .
-  start_command: python -m uvicorn app:app --host 0.0.0.0 --port 8000
+  # OPENAI_API_KEY is intentionally a placeholder string. The platform's egress
+  # MITM proxy substitutes the real credential from the bound org vault at TLS
+  # write time, so the real key never enters this VM. CLI ≥ 0.22.0 auto-binds
+  # any vault with a service mapping for api.openai.com (see vault: below).
+  start_command: >-
+    : "${OPENAI_API_KEY:=OPENAI_KEY}" &&
+    export OPENAI_API_KEY &&
+    python -m uvicorn app:app --host 0.0.0.0 --port 8000
 secrets:
-  - name: openai_api_key
-    required: true
-    prompt: OpenAI API key (used by the orchestrator only — never enters the child sandbox)
-    env_name: OPENAI_API_KEY
   - name: instavm_api_key
     required: true
     prompt: InstaVM API key (used by the orchestrator to spawn per-request preview microVMs)
     env_name: INSTAVM_API_KEY
+# Auto-bind any org vault that has a service mapping for these hosts.
+vault:
+  required: true
+  hosts:
+    - api.openai.com
 post_deploy_notes:
   - Type a description of a small web app, watch the agent build it, and click the preview URL.
   - Each preview lives in a disposable InstaVM microVM with a public TLS share on port 8080.
+  - Before deploying, create an org vault and bind it to api.openai.com (one-time). See the root README "One-time vault setup" section.
   - Default preview lifetime is 15 minutes (set VIBE_PREVIEW_TTL_SECONDS to override).
 build:
   context: .
