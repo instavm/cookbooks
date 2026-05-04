@@ -25,6 +25,7 @@ run:
   # vault: below). The vault binding must use auth_type=api_key with header
   # x-api-key and a credential named ANTHROPIC_KEY.
   start_command: >-
+    export HOME="${HOME:-/root}" &&
     export NVM_DIR="$HOME/.nvm" &&
     . "$NVM_DIR/nvm.sh" &&
     nvm use 22 >/dev/null &&

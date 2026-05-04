@@ -23,6 +23,7 @@ run:
   # write time, so the real key never enters this VM. CLI ≥ 0.22.0 auto-binds
   # any vault that has a service mapping for api.openai.com (see vault: above).
   start_command: >-
+    export HOME="${HOME:-/root}" &&
     export NVM_DIR="$HOME/.nvm" &&
     . "$NVM_DIR/nvm.sh" &&
     nvm use 22 >/dev/null &&
