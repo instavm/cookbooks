@@ -2,6 +2,8 @@
 
 You are looking at a real Visual Studio Code editor (via [code-server](https://github.com/coder/code-server), Apache-2.0) running inside a Firecracker microVM provisioned by InstaVM.
 
+> **First time?** If the editor came up empty (no Explorer pane / `File system provider for vscode-remote://… is not available` error), reload the page with `?folder=/root/workspace` appended to the URL. code-server's web build needs an explicit local-path folder, otherwise it tries to mount the share host as a remote FS provider that doesn't exist in this build.
+
 ## What is different from "VS Code in Docker"
 
 Most "VS Code in browser" demos run inside a Docker container that shares the host kernel. This cookbook runs inside a **KVM-backed microVM** with its own kernel, its own network namespace, and InstaVM's deny-by-default egress controls. The editor and your shell get the same isolation guarantees as the rest of the InstaVM platform.

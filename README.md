@@ -20,7 +20,7 @@ python3 scripts/validate_manifests.py
 - `neon-city-webgl`: immersive fullscreen WebGL cityscape with procedural towers and a looping robot pedestrian.
 - `claude-simple-chatapp`: browser chat for Claude with a React frontend and live conversation threads.
 - `openai-agents-js-chat`: streaming browser chat with tool calls, reasoning, and support handoffs.
-- `openai-agents-python-research`: research desk that turns a prompt into a concise briefing with supporting notes.
+- `openai-agents-python-research`: newspaper-style deep research desk. The agent searches and reads the public web through a Chromium browser running on InstaVM and files a cited memo; the OpenAI key never enters the deployed VM (consumed from the org vault).
 - `openai-agents-python-injection-scanner`: streaming prompt-injection scanner; runs adversarial tooling against an uploaded document inside a fresh, egress-locked InstaVM child sandbox. *First cookbook to use InstaVM as the OpenAI Agents SDK sandbox provider.*
 - `openai-agents-python-vibe-preview`: describe a small web app, watch the agent build it inside a fresh InstaVM microVM, and click a live TLS preview URL backed by an InstaVM share.
 - `openai-agents-python-vault-demo`: OpenAI Agents SDK on InstaVM with **no real OpenAI key in the orchestrator or in the sandbox**. The cookbook holds only `INSTAVM_API_KEY`; `OPENAI_API_KEY` is a literal placeholder string and the org-scoped InstaVM Vault rewrites it to the real value at TLS write time.
@@ -72,6 +72,39 @@ flowchart LR
 ```
 
 Vault is **organization-scoped** — every VM your org launches inherits the bindings. The cookbook never calls a vault API; it only consumes what the user has already set up via CLI. See [openai-agents-python-vault-demo/README.md](openai-agents-python-vault-demo/README.md) for the four commands and a falsifiability check (`echo $OPENAI_API_KEY` inside the cookbook VM should print the placeholder).
+
+## One-time vault setup (covers every cookbook)
+
+The vault pattern isn't limited to `openai-agents-python-vault-demo` and `openai-agents-python-research` — any cookbook that needs `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, etc. can consume them from the same org vault. Set this up **once** and then deploy any cookbook without pasting credentials into a deploy form.
+
+```bash
+# 1. Create an org vault. Pick any name; cookbooks scan all org vaults.
+VAULT_ID=$(instavm vault create cookbook-org -j \
+  | python3 -c "import sys,json; print(json.load(sys.stdin)['id'])")
+
+# 2. Add a credential by name. Use the *placeholder name* the cookbooks
+#    expect (OPENAI_KEY for OpenAI, ANTHROPIC_KEY for Anthropic, etc.).
+#    The CLI prompts for the value so it never enters your shell history.
+instavm vault secret set "$VAULT_ID" OPENAI_KEY
+
+# 3. Bind that credential to a hostname. The egress proxy will substitute
+#    the real value on every TLS request to that host.
+instavm vault service add "$VAULT_ID" \
+  --host api.openai.com --auth-type bearer --credential OPENAI_KEY
+
+# 4. Verify
+instavm vault discover "$VAULT_ID"
+```
+
+After step 4, deploy any vault-aware cookbook with **only** an `INSTAVM_API_KEY` secret — no `OPENAI_API_KEY` ever appears in the VM:
+
+```bash
+cd openai-agents-python-research
+instavm deploy .
+# CLI prompts for INSTAVM_API_KEY only.
+```
+
+Cookbooks that use the vault pattern have a `Vault · …` pill in their UI; if it shows `MISSING`, the homepage prints the four commands above. Adding a new credential (e.g. ANTHROPIC_KEY) is just steps 2 and 3 with the new name and host — no redeploy needed.
 
 ## Making existing cookbooks more interesting
 

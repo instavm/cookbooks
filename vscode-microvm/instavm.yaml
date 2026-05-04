@@ -1,7 +1,7 @@
 schema_version: 1
 slug: vscode-microvm
 title: VS Code in a Microvm
-version: "0.1.0"
+version: "0.1.1"
 summary: code-server (Apache-2.0) running inside a Firecracker microVM. Edit code in the browser; everything executes in a real KVM VM with a deny-by-default egress posture.
 category: dev-environment
 runtime: code-server
@@ -18,14 +18,21 @@ app:
   readiness_timeout_seconds: 180
 run:
   workdir: .
-  start_command: code-server --bind-addr 0.0.0.0:8080 --auth password --disable-telemetry --disable-update-check $HOME/workspace
+  # IMPORTANT: do not pass a positional folder here. When code-server is run
+  # behind a proxy with a hostname (the InstaVM share), passing a folder
+  # argument causes the workspace URI to be persisted as
+  # `vscode-remote://<share-host>/<path>`, which the web build cannot resolve
+  # ("File system provider for vscode-remote://… is not available"). Users
+  # should open the share URL with `?folder=/root/workspace` instead — the
+  # WELCOME.md note covers this.
+  start_command: code-server --bind-addr 0.0.0.0:8080 --auth password --disable-telemetry --disable-update-check
 secrets:
   - name: code_server_password
     required: true
     prompt: Password for the in-browser editor login screen (any non-empty string)
     env_name: PASSWORD
 post_deploy_notes:
-  - Open the share URL, enter the PASSWORD you set at deploy. Editor opens onto /workspace.
+  - "Open `<share_url>/?folder=/root/workspace` (note the query param) and enter the PASSWORD you set at deploy. The query param is required — without it, code-server's web build will fail with 'File system provider for vscode-remote://<host>/workspace is not available' because the workspace URI is constructed with the share host as authority. With `?folder=/root/workspace`, VS Code resolves the folder as a plain `file://` URI handled by the local FS provider."
   - Drop into a real Linux shell with the integrated terminal (Ctrl+`). Files, network, and processes live inside a Firecracker microVM, not a Docker container.
   - To install extensions, use the Extensions panel inside code-server. Internet egress is required to reach the marketplace; if the VM is locked down, install via .vsix files.
   - To bump code-server, edit the FROM line in Dockerfile and rerun `instavm deploy .`.

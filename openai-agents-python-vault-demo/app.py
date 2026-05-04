@@ -19,6 +19,7 @@ import os
 from contextlib import asynccontextmanager
 from typing import Any, AsyncIterator
 
+import httpx
 from agents import RunConfig, Runner
 from agents.sandbox import Manifest, SandboxAgent, SandboxRunConfig
 from fastapi import FastAPI, HTTPException
@@ -30,6 +31,23 @@ from instavm.integrations.openai_agents import (
     InstaVMSandboxClient,
     InstaVMSandboxClientOptions,
 )
+
+
+# The vault API surface lives in the InstaVM SDK on dev/main but isn't yet on
+# PyPI as of instavm==0.21.0. Talk to /v1/vaults over HTTP directly so this
+# cookbook works against the published baseline without forcing users onto a
+# pre-release SDK.
+INSTAVM_API_BASE = os.environ.get("INSTAVM_API_BASE", "https://api.instavm.io").rstrip("/")
+
+
+def _vault_get(instavm_key: str, path: str, *, params: dict[str, Any] | None = None) -> Any:
+    url = f"{INSTAVM_API_BASE}{path}"
+    # InstaVM's API gateway expects X-API-Key (not Bearer). See sandbox_client._auth_headers.
+    headers = {"X-API-Key": instavm_key}
+    with httpx.Client(timeout=15.0) as client:
+        resp = client.get(url, headers=headers, params=params)
+        resp.raise_for_status()
+        return resp.json()
 
 logger = logging.getLogger("vault_demo")
 logging.basicConfig(level=os.environ.get("LOG_LEVEL", "INFO"))
@@ -104,6 +122,27 @@ def _vault_client(instavm_key: str) -> InstaVM:
     return InstaVM(api_key=instavm_key, auto_start_session=False)
 
 
+def _list_vaults(instavm_key: str) -> list[dict[str, Any]]:
+    payload = _vault_get(instavm_key, "/v1/vaults")
+    return payload.get("vaults", []) if isinstance(payload, dict) else []
+
+
+def _list_vault_services(instavm_key: str, vault_id: str) -> list[dict[str, Any]]:
+    payload = _vault_get(instavm_key, f"/v1/vaults/{vault_id}/services")
+    return payload.get("services", []) if isinstance(payload, dict) else []
+
+
+def _list_vault_request_logs(instavm_key: str, vault_id: str, *, limit: int = 5) -> list[dict[str, Any]]:
+    payload = _vault_get(
+        instavm_key, f"/v1/vaults/{vault_id}/request-logs", params={"limit": limit}
+    )
+    if isinstance(payload, list):
+        return payload
+    if isinstance(payload, dict):
+        return payload.get("logs") or payload.get("entries") or []
+    return []
+
+
 def _run_preflight(instavm_key: str) -> VaultPreflight:
     """Look for an org vault that has a service binding to TARGET_HOST.
 
@@ -111,14 +150,13 @@ def _run_preflight(instavm_key: str) -> VaultPreflight:
     error otherwise so the user can fix it via the CLI without redeploying.
     """
     cli_hint = [
-        f'VAULT_ID=$(instavm vault create cookbook-demo -o json | jq -r .id)',
+        f'VAULT_ID=$(instavm vault create cookbook-demo -j | python3 -c "import sys,json; print(json.load(sys.stdin)[\\"id\\"])")',
         f'instavm vault secret set "$VAULT_ID" {PLACEHOLDER}',
-        f'instavm vault service add "$VAULT_ID" --template openai --credential {PLACEHOLDER}',
+        f'instavm vault service add "$VAULT_ID" --host {TARGET_HOST} --auth-type bearer --credential {PLACEHOLDER}',
         f'instavm vault discover "$VAULT_ID"',
     ]
     try:
-        client = _vault_client(instavm_key)
-        vaults = client.list_vaults() or []
+        vaults = _list_vaults(instavm_key)
     except Exception as exc:
         return VaultPreflight(
             ok=False,
@@ -142,7 +180,7 @@ def _run_preflight(instavm_key: str) -> VaultPreflight:
         if not vault_id:
             continue
         try:
-            services = client.list_vault_services(vault_id) or []
+            services = _list_vault_services(instavm_key, vault_id)
         except Exception:
             continue
         for svc in services:
@@ -868,7 +906,8 @@ async def _ask_stream(prompt: str) -> AsyncIterator[bytes]:
         yield _phase("audit", "active")
         try:
             wire = await asyncio.to_thread(
-                _vault_client(instavm_key).get_vault_request_logs,
+                _list_vault_request_logs,
+                instavm_key,
                 _preflight_cache.vault_id,
                 limit=5,
             )
