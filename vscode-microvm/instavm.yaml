@@ -35,7 +35,7 @@ post_deploy_notes:
   - "Open `<share_url>/?folder=/root/workspace` (note the query param) and enter the PASSWORD you set at deploy. The query param is required — without it, code-server's web build will fail with 'File system provider for vscode-remote://<host>/workspace is not available' because the workspace URI is constructed with the share host as authority. With `?folder=/root/workspace`, VS Code resolves the folder as a plain `file://` URI handled by the local FS provider."
   - Drop into a real Linux shell with the integrated terminal (Ctrl+`). Files, network, and processes live inside a Firecracker microVM, not a Docker container.
   - To install extensions, use the Extensions panel inside code-server. Internet egress is required to reach the marketplace; if the VM is locked down, install via .vsix files.
-  - To bump code-server, edit the FROM line in Dockerfile and rerun `instavm deploy .`.
+  - To bump code-server, bump `CS_VERSION` in `instavm.yaml` (`setup_command`) and the `--version` argument in `Dockerfile`'s install script so snapshot builds stay aligned.
 build:
   context: .
   dockerfile: Dockerfile

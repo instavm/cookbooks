@@ -1,4 +1,4 @@
 # Marker file for `instavm deploy` project-type detection.
-# This cookbook is built by the Dockerfile in this directory, which wraps
-# codercom/code-server. There are no Python dependencies to install at
-# deploy time; the upstream image already contains everything needed.
+# The live VM installs code-server from the tarball URL in instavm.yaml
+# (`setup_command`). The Dockerfile installs it via code-server.dev/install.sh for
+# snapshot / image builds. There are no Python dependencies at deploy time.

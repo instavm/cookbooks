@@ -59,9 +59,21 @@ logging.basicConfig(level=os.environ.get("LOG_LEVEL", "INFO"))
 
 MODEL_NAME = os.environ.get("OPENAI_MODEL", "gpt-5.4-nano")
 PLACEHOLDER = os.environ.get("VAULT_DEMO_PLACEHOLDER", "OPENAI_KEY")
-TARGET_HOST = os.environ.get("VAULT_DEMO_HOST", "api.openai.com")
-SANDBOX_MEMORY_MB = int(os.environ.get("VAULT_SANDBOX_MEMORY_MB", "1024"))
-SANDBOX_TIMEOUT = int(os.environ.get("VAULT_SANDBOX_TIMEOUT_S", "600"))
+TARGET_HOST = os.environ.get("VAULT_DEMO_HOST", "api.openai.com").strip().lower()
+
+
+def _get_int_env(key: str, default: int) -> int:
+    raw = os.environ.get(key)
+    if raw is None or raw == "":
+        return default
+    try:
+        return int(raw)
+    except ValueError:
+        return default
+
+
+SANDBOX_MEMORY_MB = _get_int_env("VAULT_SANDBOX_MEMORY_MB", 1024)
+SANDBOX_TIMEOUT = _get_int_env("VAULT_SANDBOX_TIMEOUT_S", 600)
 
 
 def _looks_like_real_openai_key(value: str) -> bool:
@@ -93,7 +105,7 @@ def _validate_orchestrator_env() -> str:
             "real key should live ONLY in the InstaVM vault, not in this "
             "orchestrator's environment. Unset OPENAI_API_KEY or set it to a "
             "placeholder name like 'OPENAI_KEY' that matches a credential "
-            "bound in your vault to api.openai.com."
+            f"bound in your vault to {TARGET_HOST}."
         )
 
     # Force the placeholder so the OpenAI SDK doesn't 401 before the vault
@@ -169,7 +181,7 @@ def _run_preflight(instavm_key: str) -> VaultPreflight:
             ok=False,
             message=(
                 "Your organization has no vaults yet. Run the four CLI "
-                "commands shown to create one bound to api.openai.com."
+                f"commands shown to create one bound to {TARGET_HOST}."
             ),
             cli_hint=cli_hint,
         )
@@ -746,8 +758,11 @@ async def health() -> dict[str, str]:
 
 @app.get("/api/preflight")
 async def preflight_endpoint() -> VaultPreflight:
-    """Return the cached preflight result; re-run on each call to keep it fresh."""
-    instavm_key = _validate_orchestrator_env()
+    """Re-run vault discovery on demand and refresh the cached UI snapshot."""
+    try:
+        instavm_key = _validate_orchestrator_env()
+    except RuntimeError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
     result = await asyncio.to_thread(_run_preflight, instavm_key)
     global _preflight_cache
     _preflight_cache = result
@@ -935,7 +950,10 @@ async def _ask_stream(prompt: str) -> AsyncIterator[bytes]:
 
 @app.post("/api/ask")
 async def ask(req: AskRequest) -> StreamingResponse:
-    _validate_orchestrator_env()
+    try:
+        _validate_orchestrator_env()
+    except RuntimeError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
     prompt = (req.prompt or "").strip()
     if not prompt:
         raise HTTPException(status_code=400, detail="Prompt is required.")

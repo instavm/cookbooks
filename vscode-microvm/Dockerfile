@@ -6,10 +6,13 @@
 # runs the start_command directly on the host microVM.
 FROM debian:bookworm-slim
 
+# code-server version — keep in sync with CS_VERSION in instavm.yaml setup_command.
+ARG CS_VERSION=4.96.4
+
 RUN apt-get update \
  && apt-get install -y --no-install-recommends curl ca-certificates \
  && rm -rf /var/lib/apt/lists/* \
- && curl -fsSL https://code-server.dev/install.sh | sh -s -- --version 4.96.4
+ && curl -fsSL https://code-server.dev/install.sh | sh -s -- --version "${CS_VERSION}"
 
 WORKDIR /workspace
 EXPOSE 8080

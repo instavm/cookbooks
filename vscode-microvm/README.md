@@ -40,8 +40,10 @@ Enter the `PASSWORD` you supplied at the login screen.
 
 ## What is shipped inside
 
-- code-server `4.96.4` (bumpable by editing the `FROM` line in [Dockerfile](Dockerfile)).
-- A seeded `/workspace/WELCOME.md` orientation file.
+- code-server **4.96.4**, pinned in two places so snapshot builds match `upload_and_run`:
+  - [`instavm.yaml`](instavm.yaml) — `CS_VERSION` inside `setup_command` (tarball install on the VM).
+  - [`Dockerfile`](Dockerfile) — `--version 4.96.4` passed to the upstream install script.
+- A seeded **`/root/workspace`** tree (when `HOME` is `/root`): files from [`workspace/`](workspace/) are copied to `$HOME/workspace` at setup time (`WELCOME.md`, etc.).
 - `--auth password`, `--disable-telemetry`, `--disable-update-check` flags so the editor behaves predictably under locked-down egress.
 
 ## Auth posture
@@ -67,32 +69,28 @@ instavm deploy . \
 
 Note the start command does **not** pass a folder argument — see "Why the query param?" above. Open the share URL with `?folder=/root/workspace`.
 
-Or take the alternate snapshot-based route — bake the upstream image into a private InstaVM snapshot and boot it directly:
+Or take the alternate snapshot-based route — build a snapshot from this cookbook's [`Dockerfile`](Dockerfile), boot a VM from it, then share port 8080:
 
 ```bash
-SNAP_ID=$(instavm snapshot build codercom/code-server:4.96.4 \
-  --name vscode-microvm-0.1.0 --memory 4096 --vcpu 2 -j | jq -r .id)
-# Wait for snapshot status: ready
-instavm create --snapshot $SNAP_ID --memory 4096 --vcpu 2
-# (note the VM ID, then expose port 8080)
-instavm share create $VM_ID 8080 --public
+SNAP_ID=$(instavm snapshot build . \
+  --name vscode-microvm-snap --memory 4096 --vcpu 2 -j | jq -r .id)
+# Wait until snapshot status is `ready`, then create a VM from it:
+instavm create --snapshot "$SNAP_ID" --memory 4096 --vcpu 2
+# Note the VM ID from the output, then expose port 8080:
+instavm share create "$VM_ID" 8080 --public
 ```
-
-The snapshot route bakes `PASSWORD` into the image at build time (via `--env PASSWORD=...`), so each deploy needs its own snapshot. For a per-user cookbook with per-user passwords, the manifest path above is simpler.
 
 ## Bump or fork
 
-To bump code-server:
+To bump code-server, keep the tarball pin and the Dockerfile pin in sync:
 
-```diff
-- FROM codercom/code-server:4.96.4
-+ FROM codercom/code-server:4.X.Y
-```
+1. Edit **`CS_VERSION`** in [`instavm.yaml`](instavm.yaml) (`setup_command`).
+2. Edit **`ARG CS_VERSION`** in [`Dockerfile`](Dockerfile) (passed to `install.sh --version`).
 
-Find current tags at <https://hub.docker.com/r/codercom/code-server/tags>.
+Release assets live at <https://github.com/coder/code-server/releases>.
 
-To swap to [openvscode-server](https://github.com/gitpod-io/openvscode-server) (Gitpod's fork, closer to upstream VS Code) or [agent-infra/sandbox](https://github.com/agent-infra/sandbox) (kitchen-sink: editor + VNC + terminal + MCP), replace the `FROM` line and adjust the start command + healthcheck path. openvscode-server uses connection tokens via URL fragments instead of `PASSWORD`, so the auth UX changes.
+To swap to [openvscode-server](https://github.com/gitpod-io/openvscode-server) (Gitpod's fork, closer to upstream VS Code) or [agent-infra/sandbox](https://github.com/agent-infra/sandbox) (kitchen-sink: editor + VNC + terminal + MCP), replace the install mechanism and adjust the start command + healthcheck path. openvscode-server uses connection tokens via URL fragments instead of `PASSWORD`, so the auth UX changes.
 
 ## Attribution
 
-This cookbook redistributes [`coder/code-server`](https://github.com/coder/code-server) under the Apache-2.0 license. The full upstream license remains inside the image at `/usr/lib/code-server/LICENSE.txt`. All editor functionality is upstream's; this cookbook only adds packaging and InstaVM-specific glue.
+This cookbook redistributes [`coder/code-server`](https://github.com/coder/code-server) under the Apache-2.0 license. When installed via the upstream Debian packages or tarball, the license ships under paths such as `/usr/lib/code-server/LICENSE.txt` or `/opt/code-server/LICENSE.txt`. All editor functionality is upstream's; this cookbook only adds packaging and InstaVM-specific glue.
