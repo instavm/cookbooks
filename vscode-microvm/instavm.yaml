@@ -1,7 +1,7 @@
 schema_version: 1
 slug: vscode-microvm
 title: VS Code in a Microvm
-version: "0.1.1"
+version: "0.1.3"
 summary: code-server (Apache-2.0) running inside a Firecracker microVM. Edit code in the browser; everything executes in a real KVM VM with a deny-by-default egress posture.
 category: dev-environment
 runtime: code-server
@@ -53,10 +53,30 @@ source:
   exclude: []
   setup_command: |
     set -euo pipefail
+    CS_VERSION="4.96.4"
+    # Install code-server from the official static tarball. This avoids the
+    # `npm install code-server` path entirely — that path needs a working
+    # node-gyp toolchain to source-build the ``argon2`` native module if the
+    # prebuilt binary download is blocked, and many sandbox egress policies
+    # don't allow the github-releases CDN. The static tarball is one HTTP GET
+    # against ``release-assets.githubusercontent.com`` (also egress-gated,
+    # but a single host) and it's strictly faster on the happy path.
     if ! command -v code-server >/dev/null 2>&1; then
-      apt-get update
-      DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends nodejs npm python3 make g++ git ca-certificates
-      npm install --global --omit=dev code-server@4.96.4
+      ARCH="$(uname -m)"
+      case "$ARCH" in
+        x86_64)  CS_ARCH="amd64" ;;
+        aarch64) CS_ARCH="arm64" ;;
+        *)       echo "unsupported arch: $ARCH" >&2; exit 1 ;;
+      esac
+      TARBALL="code-server-${CS_VERSION}-linux-${CS_ARCH}.tar.gz"
+      URL="https://github.com/coder/code-server/releases/download/v${CS_VERSION}/${TARBALL}"
+      sudo apt-get update >/dev/null
+      sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends ca-certificates curl tar >/dev/null
+      curl -fsSL --retry 3 --max-time 180 "$URL" -o /tmp/cs.tgz
+      sudo mkdir -p /opt/code-server
+      sudo tar -xzf /tmp/cs.tgz -C /opt/code-server --strip-components=1
+      sudo ln -sf /opt/code-server/bin/code-server /usr/local/bin/code-server
+      rm -f /tmp/cs.tgz
     fi
     mkdir -p "$HOME/workspace"
     if [ -d workspace ] && [ ! -e "$HOME/workspace/WELCOME.md" ]; then
