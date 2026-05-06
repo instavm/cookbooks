@@ -1,8 +1,8 @@
 schema_version: 1
 slug: openai-agents-python-research
-title: Research Desk
-version: "0.1.0"
-summary: Research workspace that turns a prompt into a concise briefing with supporting notes.
+title: The Research Desk
+version: "0.3.1"
+summary: A newspaper-style deep-research assistant. The agent searches and reads the public web through a Chromium browser running on InstaVM, and the OpenAI key never enters this VM — the org InstaVM vault injects it at egress.
 category: agents
 runtime: python-fastapi
 deploy:
@@ -15,24 +15,34 @@ app:
   port: 8000
   healthcheck_path: /health
   share_public_default: true
-  readiness_timeout_seconds: 180
+  readiness_timeout_seconds: 240
 run:
   workdir: .
   start_command: python -m uvicorn app:app --host 0.0.0.0 --port 8000
 secrets:
-  - name: openai_api_key
+  - name: instavm_api_key
     required: true
-    prompt: OpenAI API key
-    env_name: OPENAI_API_KEY
+    prompt: InstaVM API key (drives the platform browser, queries the org vault)
+    env_name: INSTAVM_API_KEY
+# Auto-bind any org vault that has a service mapping for these hosts.
+# `instavm deploy` (CLI ≥ 0.22.0) discovers the vault and passes vault_ids to
+# POST /v1/vms so the egress MITM activates for this VM. With required=true,
+# deploy fails fast if no matching vault exists, avoiding a silent 401 in the UI.
+vault:
+  required: true
+  hosts:
+    - api.openai.com
 post_deploy_notes:
-  - Ask for a market brief, company analysis, or technical topic survey from the browser.
-  - Set OPENAI_MODEL before deploy if you want a different hosted model.
+  - "This cookbook intentionally has only ONE secret. The OpenAI key never enters this VM — it lives in the org's InstaVM vault and the platform's egress proxy substitutes it on the wire."
+  - "Easy path (CLI ≥ 0.23.0): `instavm deploy .` walks you through the bootstrap on first use — answer two prompts and paste your OpenAI key once. The CLI creates the vault, stores the credential under OPENAI_API_KEY, and binds api.openai.com automatically. Every other vault-aware cookbook in this repo then reuses the same binding."
+  - "Manual path: `instavm vault create cookbook-org`, `instavm vault secret set <vault_id> OPENAI_API_KEY`, `instavm vault service add <vault_id> --template openai`. If you didn't configure the vault, the homepage shows the recipe — no redeploy needed afterwards."
+  - "Override OPENAI_MODEL, RESEARCH_MAX_TURNS, RESEARCH_MAX_VISITS, etc. via env vars at deploy time."
 build:
   context: .
   dockerfile: Dockerfile
 artifact:
-  oci_image: docker.io/instavm/cookbooks-openai-agents-python-research:0.1.0
-  snapshot_name: cookbook/openai-agents-python-research:0.1.0
+  oci_image: docker.io/instavm/cookbooks-openai-agents-python-research:0.3.0
+  snapshot_name: cookbook/openai-agents-python-research:0.3.0
   snapshot_visibility: public_system
 source:
   include:

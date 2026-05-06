@@ -1,8 +1,8 @@
 schema_version: 1
 slug: claude-simple-chatapp
 title: Claude Chat
-version: "0.1.0"
-summary: Browser chat for Claude with a clean interface and live conversation threads.
+version: "0.2.0"
+summary: Browser chat for Claude with a clean interface and live conversation threads. Uses the InstaVM Vault — no real Anthropic key enters this cookbook.
 category: agents
 runtime: node-express-react
 deploy:
@@ -18,19 +18,30 @@ app:
   readiness_timeout_seconds: 180
 run:
   workdir: .
+  # ANTHROPIC_API_KEY is intentionally a placeholder string. The platform's
+  # egress MITM proxy substitutes the real credential from the bound org vault
+  # at TLS write time, so the real key never enters this VM. CLI ≥ 0.22.0
+  # auto-binds any vault with a service mapping for api.anthropic.com (see
+  # vault: below). The vault binding must use auth_type=api_key with header
+  # x-api-key and a credential named ANTHROPIC_KEY.
   start_command: >-
+    export HOME="${HOME:-/root}" &&
     export NVM_DIR="$HOME/.nvm" &&
     . "$NVM_DIR/nvm.sh" &&
     nvm use 22 >/dev/null &&
+    : "${ANTHROPIC_API_KEY:=ANTHROPIC_KEY}" &&
+    export ANTHROPIC_API_KEY &&
     NODE_OPTIONS="--require $PWD/server/claude-code-dns-patch.cjs" PORT=3001 npm start
-secrets:
-  - name: anthropic_api_key
-    required: true
-    prompt: Anthropic API key
-    env_name: ANTHROPIC_API_KEY
+secrets: []
+# Auto-bind any org vault that has a service mapping for these hosts.
+vault:
+  required: true
+  hosts:
+    - api.anthropic.com
 post_deploy_notes:
   - Create a chat and send a first message from the browser UI.
   - The app keeps chat state in memory, so restarting the service resets conversations.
+  - "Before deploying, bind an org vault to api.anthropic.com. Easy path (CLI ≥ 0.23.0): just run `instavm deploy .` and answer the bootstrap prompts; the CLI creates the vault, prompts for the Anthropic key via getpass, and binds the service automatically. Manual path: see the root README \"One-time vault setup\" section."
 build:
   context: .
   dockerfile: Dockerfile

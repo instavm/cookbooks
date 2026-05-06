@@ -1,0 +1,4 @@
+# Marker file for `instavm deploy` project-type detection.
+# The live VM installs code-server from the tarball URL in instavm.yaml
+# (`setup_command`). The Dockerfile installs it via code-server.dev/install.sh for
+# snapshot / image builds. There are no Python dependencies at deploy time.

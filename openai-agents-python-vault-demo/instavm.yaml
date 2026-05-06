@@ -1,0 +1,54 @@
+schema_version: 1
+slug: openai-agents-python-vault-demo
+title: Vault Demo
+version: "0.2.0"
+summary: OpenAI Agents SDK on InstaVM, but with no real OpenAI key anywhere. The orchestrator and child sandbox both call api.openai.com using a placeholder string; the org's InstaVM Vault transparently substitutes the real credential at egress.
+category: agents
+runtime: python-fastapi
+deploy:
+  kind: upload_and_run
+vm:
+  memory_mb: 2048
+  vcpu_count: 2
+  timeout_seconds: 7200
+app:
+  port: 8000
+  healthcheck_path: /health
+  share_public_default: true
+  readiness_timeout_seconds: 240
+run:
+  workdir: .
+  start_command: python -m uvicorn app:app --host 0.0.0.0 --port 8000
+secrets:
+  - name: instavm_api_key
+    required: true
+    prompt: InstaVM API key (used to spawn child sandboxes and to query vault request logs as proof of substitution)
+    env_name: INSTAVM_API_KEY
+# Auto-bind any org vault that has a service mapping for these hosts.
+# `instavm deploy` (CLI ≥ 0.22.0) propagates vault_ids into POST /v1/vms so
+# the egress MITM activates for this orchestrator VM (and, by inheritance,
+# any child sandbox it spawns with the same vault_ids).
+vault:
+  required: true
+  hosts:
+    - api.openai.com
+post_deploy_notes:
+  - "Before deploying, set up a vault. Easy path (CLI ≥ 0.23.0): `instavm deploy .` will walk you through it. The cookbook README also documents the manual four-command walkthrough (vault create / secret set / service add / discover)."
+  - This cookbook intentionally has only ONE secret. The OpenAI key never enters this VM. If preflight fails to find a vault bound to api.openai.com, the UI will tell you exactly which CLI commands to run.
+  - Override the placeholder name with VAULT_DEMO_PLACEHOLDER (defaults to OPENAI_KEY). Override the model with OPENAI_MODEL (defaults to gpt-5.4-nano).
+build:
+  context: .
+  dockerfile: Dockerfile
+artifact:
+  oci_image: docker.io/instavm/cookbooks-openai-agents-python-vault-demo:0.1.0
+  snapshot_name: cookbook/openai-agents-python-vault-demo:0.1.0
+  snapshot_visibility: public_system
+source:
+  include:
+    - app.py
+    - requirements.txt
+    - README.md
+    - Dockerfile
+    - instavm.yaml
+  exclude: []
+  setup_command: python -m pip install --no-cache-dir -r requirements.txt
