@@ -1,0 +1,42 @@
+schema_version: 1
+slug: deep-research-exa
+title: Deep Research (OpenAI Agents + Exa)
+version: "0.1.0"
+summary: A deep-research agent built with the OpenAI Agents SDK that uses Exa to search and read the web. Both the OpenAI and Exa keys live in an InstaVM vault and are substituted at egress.
+category: agents
+runtime: python-fastapi
+deploy:
+  kind: upload_and_run
+vm:
+  memory_mb: 2048
+  vcpu_count: 2
+  timeout_seconds: 86400
+app:
+  port: 8000
+  healthcheck_path: /health
+  share_public_default: true
+  readiness_timeout_seconds: 240
+run:
+  workdir: .
+  start_command: python -m uvicorn app:app --host 0.0.0.0 --port 8000
+vault:
+  required: true
+  hosts:
+    - api.openai.com
+    - api.exa.ai
+egress:
+  hosts:
+    - api.openai.com
+    - api.exa.ai
+secrets: []
+post_deploy_notes:
+  - "Both keys (OpenAI + Exa) are in the InstaVM org vault; the platform's egress proxy substitutes the real values on the wire — the orchestrator only sees the placeholder strings 'OPENAI_KEY' and 'EXA_KEY'."
+  - "Override OPENAI_MODEL, RESEARCH_MAX_TURNS, RESEARCH_SEARCH_RESULTS via --env at deploy time."
+source:
+  include:
+    - app.py
+    - requirements.txt
+    - instavm.yaml
+    - README.md
+  exclude: []
+  setup_command: python -m pip install --no-cache-dir -r requirements.txt
