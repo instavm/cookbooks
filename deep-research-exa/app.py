@@ -12,10 +12,13 @@ platform's MITM proxy rewrites on the wire.
 from __future__ import annotations
 
 import asyncio
+import base64
 import contextvars
+import hashlib
 import json
 import logging
 import os
+import re
 import socket
 import time
 from contextlib import asynccontextmanager
@@ -37,6 +40,7 @@ MAX_AGENT_TURNS = int(os.environ.get("RESEARCH_MAX_TURNS", "12"))
 DEFAULT_SEARCH_RESULTS = int(os.environ.get("RESEARCH_SEARCH_RESULTS", "6"))
 PER_PAGE_CHAR_BUDGET = int(os.environ.get("RESEARCH_PAGE_CHARS", "10000"))
 MAX_VISITS_PER_REQUEST = int(os.environ.get("RESEARCH_MAX_VISITS", "8"))
+MAX_SEARCHES_PER_REQUEST = int(os.environ.get("RESEARCH_MAX_SEARCHES", "10"))
 EXA_TIMEOUT_S = float(os.environ.get("EXA_TIMEOUT_S", "30"))
 
 OPENAI_PLACEHOLDER = os.environ.get("OPENAI_PLACEHOLDER", "OPENAI_KEY")
@@ -55,6 +59,7 @@ class RequestState:
         self.searches: list[str] = []
         self.visits: list[dict[str, Any]] = []
         self.visit_count = 0
+        self.search_count = 0
         self.exa_client: httpx.AsyncClient | None = None
 
 
@@ -81,9 +86,14 @@ async def _emit(event: bytes) -> None:
 
 
 def _env_ready() -> None:
-    # OpenAI Agents SDK reads OPENAI_API_KEY directly. Force the placeholder
-    # so the SDK doesn't refuse to start; egress rewrites it on the wire.
-    os.environ["OPENAI_API_KEY"] = OPENAI_PLACEHOLDER
+    # OpenAI Agents SDK reads OPENAI_API_KEY directly. Set the placeholder so
+    # the SDK doesn't refuse to start; egress rewrites it on the wire. Don't
+    # clobber a real key if one is already in the env (local-dev convenience).
+    existing = os.environ.get("OPENAI_API_KEY", "").strip()
+    if not existing or existing == OPENAI_PLACEHOLDER:
+        os.environ["OPENAI_API_KEY"] = OPENAI_PLACEHOLDER
+    elif existing.startswith("sk-"):
+        logger.info("OPENAI_API_KEY already set (real key); leaving as-is for local dev.")
 
 
 # ---------------------------------------------------------------------------
@@ -110,16 +120,13 @@ async def _exa_post_with_client(
             return resp.json()
         except RuntimeError:
             raise
-        except Exception as exc:
-            message = str(exc).lower()
-            transient = (
-                isinstance(exc, (httpx.ConnectError, httpx.ReadError, httpx.RemoteProtocolError, socket.gaierror))
-                or "name resolution" in message
-                or "temporary failure" in message
-                or "connection" in message
-            )
-            if not transient:
-                raise
+        except (
+            httpx.ConnectError,
+            httpx.ReadError,
+            httpx.RemoteProtocolError,
+            httpx.ConnectTimeout,
+            socket.gaierror,
+        ) as exc:
             last_exc = exc
             await asyncio.sleep(min(2.0 * (attempt + 1), 8.0))
     raise RuntimeError(f"Exa {path} failed after retries: {last_exc!s}")
@@ -132,10 +139,12 @@ async def _exa_post(path: str, payload: dict[str, Any]) -> dict[str, Any]:
         "Accept": "application/json",
     }
     state = _request_state.get()
-    if state is not None and state.exa_client is not None:
-        return await _exa_post_with_client(state.exa_client, path, payload, headers)
-    async with httpx.AsyncClient(timeout=EXA_TIMEOUT_S) as client:
-        return await _exa_post_with_client(client, path, payload, headers)
+    # Tools are only invoked from inside a request, so a per-request client
+    # should always be set. The transient fallback exists so a misuse during
+    # development surfaces clearly instead of silently leaking a client.
+    if state is None or state.exa_client is None:
+        raise RuntimeError("exa client not initialized for this request")
+    return await _exa_post_with_client(state.exa_client, path, payload, headers)
 
 
 async def _warm_dns() -> None:
@@ -167,6 +176,13 @@ async def exa_search(query: str, max_results: int = DEFAULT_SEARCH_RESULTS) -> l
     query = query.strip()[:500]
     state = _request_state.get()
     if state is not None:
+        if state.search_count >= MAX_SEARCHES_PER_REQUEST:
+            await _emit(_sse("tool", {
+                "name": "exa_search", "status": "skipped",
+                "input": query, "reason": "per-request search cap reached",
+            }))
+            return []
+        state.search_count += 1
         state.searches.append(query)
         await _emit(_sse("tool", {"name": "exa_search", "status": "active", "input": query}))
     try:
@@ -326,36 +342,80 @@ def _friendly_error(exc: Exception) -> str:
 @asynccontextmanager
 async def _lifespan(app: FastAPI) -> AsyncIterator[None]:
     _env_ready()
-    # Block until upstream hosts resolve so the first user request doesn't
-    # race the egress allowlist propagation.
-    await _warm_dns()
-    yield
+    # Resolve upstream hosts in the background so the first user request can
+    # proceed without waiting for the egress allowlist to propagate.
+    dns_task = asyncio.create_task(_warm_dns())
+    try:
+        yield
+    finally:
+        dns_task.cancel()
+        try:
+            await dns_task
+        except (asyncio.CancelledError, Exception):
+            pass
 
 
 app = FastAPI(title="Deep Research (OpenAI Agents + Exa)", lifespan=_lifespan)
 
 
-@app.middleware("http")
-async def add_security_headers(request: Request, call_next):
-    response = await call_next(request)
-    response.headers["X-Content-Type-Options"] = "nosniff"
-    response.headers["Referrer-Policy"] = "no-referrer"
-    response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
-    response.headers["Content-Security-Policy"] = (
-        "default-src 'self'; "
-        "connect-src 'self'; "
-        "img-src 'self' data:; "
-        "font-src 'self' https://fonts.gstatic.com; "
-        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
-        "script-src 'self' 'unsafe-inline'; "
-        "base-uri 'none'; "
-        "frame-ancestors 'none'"
-    )
-    return response
+_STATIC_SECURITY_HEADERS: tuple[tuple[bytes, bytes], ...] = (
+    (b"x-content-type-options", b"nosniff"),
+    (b"referrer-policy", b"no-referrer"),
+    (b"permissions-policy", b"camera=(), microphone=(), geolocation=()"),
+)
+
+
+class SecurityHeadersMiddleware:
+    """ASGI middleware that injects security headers without buffering the body.
+
+    BaseHTTPMiddleware (which ``@app.middleware('http')`` produces) collects the
+    response body before forwarding it, which breaks Server-Sent Events. This
+    plain ASGI wrapper preserves streaming by mutating headers in-place on the
+    ``http.response.start`` message and otherwise forwarding ``send`` events
+    unchanged.
+    """
+
+    def __init__(self, app):
+        self.app = app
+
+    async def __call__(self, scope, receive, send):
+        if scope["type"] != "http":
+            await self.app(scope, receive, send)
+            return
+
+        async def send_with_headers(message):
+            if message["type"] == "http.response.start":
+                headers = list(message.get("headers", []))
+                existing = {name for name, _ in headers}
+                for name, value in _STATIC_SECURITY_HEADERS:
+                    if name not in existing:
+                        headers.append((name, value))
+                if b"content-security-policy" not in existing:
+                    headers.append((b"content-security-policy", CSP_HEADER.encode("ascii")))
+                message["headers"] = headers
+            await send(message)
+
+        await self.app(scope, receive, send_with_headers)
+
+
+app.add_middleware(SecurityHeadersMiddleware)
 
 
 class ReportRequest(BaseModel):
     query: str
+
+
+def _csp_hash(content: str) -> str:
+    digest = hashlib.sha256(content.encode("utf-8")).digest()
+    return "'sha256-" + base64.b64encode(digest).decode("ascii") + "'"
+
+
+def _compute_inline_hashes(html: str) -> tuple[str, str]:
+    style_match = re.search(r"<style>(.*?)</style>", html, re.DOTALL)
+    script_match = re.search(r"<script>(.*?)</script>", html, re.DOTALL)
+    if not style_match or not script_match:
+        raise RuntimeError("expected one inline <style> and one inline <script> block")
+    return _csp_hash(style_match.group(1)), _csp_hash(script_match.group(1))
 
 
 HTML = """<!doctype html>
@@ -988,10 +1048,34 @@ HTML = """<!doctype html>
       queryEl.addEventListener("keydown", (e) => {
         if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) submit();
       });
+      document.querySelectorAll(".example").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const prompt = btn.getAttribute("data-prompt");
+          if (prompt) {
+            queryEl.value = prompt;
+            queryEl.focus();
+          }
+        });
+      });
     </script>
   </body>
 </html>
 """
+
+
+_STYLE_HASH, _SCRIPT_HASH = _compute_inline_hashes(HTML)
+CSP_HEADER = (
+    "default-src 'self'; "
+    "connect-src 'self'; "
+    "img-src 'self' data:; "
+    "font-src 'self' https://fonts.gstatic.com; "
+    f"style-src 'self' {_STYLE_HASH} https://fonts.googleapis.com; "
+    f"script-src 'self' {_SCRIPT_HASH}; "
+    "base-uri 'none'; "
+    "frame-ancestors 'none'; "
+    "object-src 'none'; "
+    "form-action 'self'"
+)
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -1062,8 +1146,10 @@ async def _research_stream(query: str) -> AsyncIterator[bytes]:
         runner_task.cancel()
         try:
             await runner_task
-        except BaseException:
+        except asyncio.CancelledError:
             pass
+        except Exception:
+            logger.exception("research runner cleanup failed")
         _request_state.reset(token)
 
 
