@@ -92,8 +92,15 @@ def _env_ready() -> None:
     existing = os.environ.get("OPENAI_API_KEY", "").strip()
     if not existing or existing == OPENAI_PLACEHOLDER:
         os.environ["OPENAI_API_KEY"] = OPENAI_PLACEHOLDER
-    elif existing.startswith("sk-"):
+        return
+    if existing.startswith("sk-"):
         logger.info("OPENAI_API_KEY already set (real key); leaving as-is for local dev.")
+    else:
+        logger.warning(
+            "OPENAI_API_KEY is set to a non-placeholder, non-sk value; leaving as-is. "
+            "Egress rewriting expects the placeholder %r; unexpected values may break upstream calls.",
+            OPENAI_PLACEHOLDER,
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -123,8 +130,12 @@ async def _exa_post_with_client(
         except (
             httpx.ConnectError,
             httpx.ReadError,
+            httpx.WriteError,
             httpx.RemoteProtocolError,
             httpx.ConnectTimeout,
+            httpx.ReadTimeout,
+            httpx.WriteTimeout,
+            httpx.PoolTimeout,
             socket.gaierror,
         ) as exc:
             last_exc = exc
@@ -140,8 +151,8 @@ async def _exa_post(path: str, payload: dict[str, Any]) -> dict[str, Any]:
     }
     state = _request_state.get()
     # Tools are only invoked from inside a request, so a per-request client
-    # should always be set. The transient fallback exists so a misuse during
-    # development surfaces clearly instead of silently leaking a client.
+    # should always be set. Raise loudly otherwise so accidental top-level
+    # invocations surface immediately instead of silently leaking a client.
     if state is None or state.exa_client is None:
         raise RuntimeError("exa client not initialized for this request")
     return await _exa_post_with_client(state.exa_client, path, payload, headers)
@@ -175,16 +186,17 @@ async def exa_search(query: str, max_results: int = DEFAULT_SEARCH_RESULTS) -> l
     """
     query = query.strip()[:500]
     state = _request_state.get()
-    if state is not None:
-        if state.search_count >= MAX_SEARCHES_PER_REQUEST:
-            await _emit(_sse("tool", {
-                "name": "exa_search", "status": "skipped",
-                "input": query, "reason": "per-request search cap reached",
-            }))
-            return []
-        state.search_count += 1
-        state.searches.append(query)
-        await _emit(_sse("tool", {"name": "exa_search", "status": "active", "input": query}))
+    if state is None:
+        raise RuntimeError("exa_search called outside of a request context")
+    if state.search_count >= MAX_SEARCHES_PER_REQUEST:
+        await _emit(_sse("tool", {
+            "name": "exa_search", "status": "skipped",
+            "input": query, "reason": "per-request search cap reached",
+        }))
+        return []
+    state.search_count += 1
+    state.searches.append(query)
+    await _emit(_sse("tool", {"name": "exa_search", "status": "active", "input": query}))
     try:
         data = await _exa_post(
             "/search",
@@ -351,8 +363,10 @@ async def _lifespan(app: FastAPI) -> AsyncIterator[None]:
         dns_task.cancel()
         try:
             await dns_task
-        except (asyncio.CancelledError, Exception):
+        except asyncio.CancelledError:
             pass
+        except Exception:
+            logger.exception("DNS warm-up task failed")
 
 
 app = FastAPI(title="Deep Research (OpenAI Agents + Exa)", lifespan=_lifespan)
@@ -386,7 +400,7 @@ class SecurityHeadersMiddleware:
         async def send_with_headers(message):
             if message["type"] == "http.response.start":
                 headers = list(message.get("headers", []))
-                existing = {name for name, _ in headers}
+                existing = {name.lower() for name, _ in headers}
                 for name, value in _STATIC_SECURITY_HEADERS:
                     if name not in existing:
                         headers.append((name, value))
@@ -411,11 +425,14 @@ def _csp_hash(content: str) -> str:
 
 
 def _compute_inline_hashes(html: str) -> tuple[str, str]:
-    style_match = re.search(r"<style>(.*?)</style>", html, re.DOTALL)
-    script_match = re.search(r"<script>(.*?)</script>", html, re.DOTALL)
-    if not style_match or not script_match:
-        raise RuntimeError("expected one inline <style> and one inline <script> block")
-    return _csp_hash(style_match.group(1)), _csp_hash(script_match.group(1))
+    style_matches = re.findall(r"<style\b[^>]*>(.*?)</style>", html, re.DOTALL | re.IGNORECASE)
+    script_matches = re.findall(r"<script\b[^>]*>(.*?)</script>", html, re.DOTALL | re.IGNORECASE)
+    if len(style_matches) != 1 or len(script_matches) != 1:
+        raise RuntimeError(
+            "expected exactly one inline <style> and one inline <script> block; "
+            f"found {len(style_matches)} style and {len(script_matches)} script"
+        )
+    return _csp_hash(style_matches[0]), _csp_hash(script_matches[0])
 
 
 HTML = """<!doctype html>
