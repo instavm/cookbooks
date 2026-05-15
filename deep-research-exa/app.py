@@ -27,7 +27,7 @@ from urllib.parse import urlparse
 
 import httpx
 from agents import Agent, RunConfig, Runner, function_tool
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException
 from fastapi.responses import HTMLResponse, StreamingResponse
 from pydantic import BaseModel
 
@@ -35,7 +35,7 @@ logger = logging.getLogger("deep_research")
 logging.basicConfig(level=os.environ.get("LOG_LEVEL", "INFO"))
 
 
-MODEL_NAME = os.environ.get("OPENAI_MODEL", "gpt-5.5")
+MODEL_NAME = os.environ.get("OPENAI_MODEL", "gpt-4o")
 MAX_AGENT_TURNS = int(os.environ.get("RESEARCH_MAX_TURNS", "12"))
 DEFAULT_SEARCH_RESULTS = int(os.environ.get("RESEARCH_SEARCH_RESULTS", "6"))
 PER_PAGE_CHAR_BUDGET = int(os.environ.get("RESEARCH_PAGE_CHARS", "10000"))
@@ -59,6 +59,7 @@ class RequestState:
         self.searches: list[str] = []
         self.visits: list[dict[str, Any]] = []
         self.visit_count = 0
+        self.visit_attempt_count = 0
         self.search_count = 0
         self.exa_client: httpx.AsyncClient | None = None
 
@@ -94,7 +95,7 @@ def _env_ready() -> None:
         os.environ["OPENAI_API_KEY"] = OPENAI_PLACEHOLDER
         return
     if existing.startswith("sk-"):
-        logger.info("OPENAI_API_KEY already set (real key); leaving as-is for local dev.")
+        logger.info("OPENAI_API_KEY already set to an OpenAI key; leaving as-is for local dev.")
     else:
         logger.warning(
             "OPENAI_API_KEY is set to a non-placeholder, non-sk value; leaving as-is. "
@@ -122,11 +123,22 @@ async def _exa_post_with_client(
     for attempt in range(8):
         try:
             resp = await client.post(f"{EXA_BASE}{path}", headers=headers, json=payload)
+            if resp.status_code >= 500:
+                raise httpx.HTTPStatusError(
+                    f"Exa {path} server error {resp.status_code}",
+                    request=resp.request,
+                    response=resp,
+                )
             if resp.status_code >= 400:
                 raise RuntimeError(f"Exa {path} {resp.status_code}: {resp.text[:300]}")
             return resp.json()
         except RuntimeError:
             raise
+        except httpx.HTTPStatusError as exc:
+            if exc.response is None or exc.response.status_code < 500:
+                raise
+            last_exc = exc
+            await asyncio.sleep(min(2.0 * (attempt + 1), 8.0))
         except (
             httpx.ConnectError,
             httpx.ReadError,
@@ -159,7 +171,7 @@ async def _exa_post(path: str, payload: dict[str, Any]) -> dict[str, Any]:
 
 
 async def _warm_dns() -> None:
-    loop = asyncio.get_event_loop()
+    loop = asyncio.get_running_loop()
     for host in ("api.exa.ai", "api.openai.com"):
         for attempt in range(20):
             try:
@@ -243,6 +255,8 @@ async def exa_get_contents(url: str) -> str:
     """Fetch the readable text of a single URL via Exa /contents."""
     url = url.strip()
     state = _request_state.get()
+    if state is None:
+        raise RuntimeError("exa_get_contents called outside of a request context")
     parsed = urlparse(url)
     if parsed.scheme not in {"http", "https"} or not parsed.netloc or len(url) > 2048:
         await _emit(_sse("tool", {
@@ -250,19 +264,17 @@ async def exa_get_contents(url: str) -> str:
             "input": url[:200], "reason": "unsupported URL",
         }))
         return "(unsupported URL)"
-    if state is not None:
-        if state.visit_count >= MAX_VISITS_PER_REQUEST:
-            await _emit(_sse("tool", {
-                "name": "exa_get_contents", "status": "skipped",
-                "input": url, "reason": "per-request visit cap reached",
-            }))
-            return (
-                f"(visit cap reached: {state.visit_count} URLs already fetched. "
-                "Synthesize from what you have.)"
-            )
-        state.visit_count += 1
-        state.visits.append({"url": url})
-        await _emit(_sse("tool", {"name": "exa_get_contents", "status": "active", "input": url}))
+    if state.visit_attempt_count >= MAX_VISITS_PER_REQUEST:
+        await _emit(_sse("tool", {
+            "name": "exa_get_contents", "status": "skipped",
+            "input": url, "reason": "per-request visit cap reached",
+        }))
+        return (
+            f"(visit cap reached: {state.visit_attempt_count} URLs already requested. "
+            "Synthesize from what you have.)"
+        )
+    state.visit_attempt_count += 1
+    await _emit(_sse("tool", {"name": "exa_get_contents", "status": "active", "input": url}))
 
     try:
         data = await _exa_post(
@@ -284,8 +296,8 @@ async def exa_get_contents(url: str) -> str:
         }))
         return f"(no content for {url})"
     text = (results[0].get("text") or "").strip()[:PER_PAGE_CHAR_BUDGET]
-    if state is not None and state.visits:
-        state.visits[-1].update({"chars": len(text)})
+    state.visit_count += 1
+    state.visits.append({"url": url, "chars": len(text)})
     await _emit(_sse("tool", {
         "name": "exa_get_contents", "status": "done",
         "input": url, "chars": len(text),
