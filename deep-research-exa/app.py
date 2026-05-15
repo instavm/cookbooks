@@ -35,7 +35,7 @@ logger = logging.getLogger("deep_research")
 logging.basicConfig(level=os.environ.get("LOG_LEVEL", "INFO"))
 
 
-MODEL_NAME = os.environ.get("OPENAI_MODEL", "gpt-4o")
+MODEL_NAME = os.environ.get("OPENAI_MODEL", "gpt-5.5")
 MAX_AGENT_TURNS = int(os.environ.get("RESEARCH_MAX_TURNS", "12"))
 DEFAULT_SEARCH_RESULTS = int(os.environ.get("RESEARCH_SEARCH_RESULTS", "6"))
 PER_PAGE_CHAR_BUDGET = int(os.environ.get("RESEARCH_PAGE_CHARS", "10000"))
