@@ -1,4 +1,5 @@
-schema_version: 1
+schema_version: 2
+kind: service
 slug: deep-research-exa
 title: Deep Research (OpenAI Agents + Exa)
 version: "0.1.0"
@@ -7,6 +8,14 @@ category: agents
 runtime: python-fastapi
 deploy:
   kind: upload_and_run
+source:
+  include:
+    - app.py
+    - requirements.txt
+    - instavm.yaml
+    - README.md
+  exclude: []
+  setup_command: python -m pip install --no-cache-dir -r requirements.txt
 vm:
   memory_mb: 2048
   vcpu_count: 2
@@ -25,18 +34,14 @@ vault:
     - api.openai.com
     - api.exa.ai
 egress:
-  hosts:
+  mode: allowlist
+  include_vault_hosts: true
+  allowed_domains:
     - api.openai.com
     - api.exa.ai
+  allowed_cidrs: []
+  allow_package_managers: true
 secrets: []
 post_deploy_notes:
-  - "Both keys (OpenAI + Exa) are in the InstaVM org vault; the platform's egress proxy substitutes the real values on the wire — the orchestrator only sees the placeholder strings 'OPENAI_KEY' and 'EXA_KEY'."
+  - "Both keys (OpenAI + Exa) are in the InstaVM org vault; the platform's egress proxy substitutes the real values on the wire. The orchestrator only sees the placeholder strings 'OPENAI_KEY' and 'EXA_KEY'."
   - "Override OPENAI_MODEL, RESEARCH_MAX_TURNS, RESEARCH_SEARCH_RESULTS via --env at deploy time."
-source:
-  include:
-    - app.py
-    - requirements.txt
-    - instavm.yaml
-    - README.md
-  exclude: []
-  setup_command: python -m pip install --no-cache-dir -r requirements.txt

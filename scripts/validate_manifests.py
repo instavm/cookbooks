@@ -21,6 +21,8 @@ REQUIRED_TOP_LEVEL = {
     "secrets",
     "post_deploy_notes",
 }
+SUPPORTED_SCHEMA_VERSIONS = {1, 2}
+SUPPORTED_KINDS = {"service", "cron", "job"}
 
 
 def require_mapping(value: object, field_name: str, errors: list[str], manifest_path: Path) -> dict:
@@ -58,13 +60,22 @@ def main() -> int:
         else:
             slugs.add(slug)
 
+        schema_version = payload.get("schema_version")
+        if schema_version not in SUPPORTED_SCHEMA_VERSIONS:
+            errors.append(f"{manifest_path}: schema_version must be 1 or 2")
+
+        workload_kind = str(payload.get("kind") or "service").strip()
+        if workload_kind not in SUPPORTED_KINDS:
+            errors.append(f"{manifest_path}: kind must be service, cron, or job")
+        if schema_version == 1 and workload_kind != "service":
+            errors.append(f"{manifest_path}: kind can only be service for schema_version 1")
+
         deploy = payload.get("deploy")
         kind = deploy.get("kind") if isinstance(deploy, dict) else None
+        if kind is None and isinstance(deploy, dict):
+            kind = deploy.get("source")
         if kind not in {"published_snapshot", "upload_and_run"}:
             errors.append(f"{manifest_path}: deploy.kind must be published_snapshot or upload_and_run")
-
-        if payload.get("schema_version") != 1:
-            errors.append(f"{manifest_path}: schema_version must be 1")
 
         app = require_mapping(payload.get("app"), "app", errors, manifest_path)
         healthcheck_path = app.get("healthcheck_path")
@@ -104,9 +115,12 @@ def main() -> int:
             include = source.get("include")
             if not isinstance(include, list) or not include:
                 errors.append(f"{manifest_path}: source.include must be a non-empty array")
+            setup_command = source.get("setup_command")
+            if not isinstance(setup_command, str) or not setup_command.strip():
+                errors.append(f"{manifest_path}: source.setup_command must be a non-empty string")
 
         dockerfile = manifest_path.parent / "Dockerfile"
-        if not dockerfile.exists():
+        if kind == "published_snapshot" and not dockerfile.exists():
             errors.append(f"{manifest_path}: Dockerfile is required")
 
     if errors:
