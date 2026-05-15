@@ -132,24 +132,14 @@ async def _exa_post_with_client(
             if resp.status_code >= 400:
                 raise RuntimeError(f"Exa {path} {resp.status_code}: {resp.text[:300]}")
             return resp.json()
-        except RuntimeError:
+        except (RuntimeError, json.JSONDecodeError):
             raise
         except httpx.HTTPStatusError as exc:
             if exc.response is None or exc.response.status_code < 500:
                 raise
             last_exc = exc
             await asyncio.sleep(min(2.0 * (attempt + 1), 8.0))
-        except (
-            httpx.ConnectError,
-            httpx.ReadError,
-            httpx.WriteError,
-            httpx.RemoteProtocolError,
-            httpx.ConnectTimeout,
-            httpx.ReadTimeout,
-            httpx.WriteTimeout,
-            httpx.PoolTimeout,
-            socket.gaierror,
-        ) as exc:
+        except (httpx.TransportError, socket.gaierror) as exc:
             last_exc = exc
             await asyncio.sleep(min(2.0 * (attempt + 1), 8.0))
     raise RuntimeError(f"Exa {path} failed after retries: {last_exc!s}")
