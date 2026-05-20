@@ -1,0 +1,29 @@
+[
+  {
+    "customer_id": "cus_acme",
+    "customer_name": "Acme Corp",
+    "plan": "pro",
+    "mrr_usd": 2400,
+    "status": "active",
+    "days_past_due": 0,
+    "cancel_at_period_end": false
+  },
+  {
+    "customer_id": "cus_globex",
+    "customer_name": "Globex",
+    "plan": "starter",
+    "mrr_usd": 299,
+    "status": "past_due",
+    "days_past_due": 12,
+    "cancel_at_period_end": true
+  },
+  {
+    "customer_id": "cus_initech",
+    "customer_name": "Initech",
+    "plan": "enterprise",
+    "mrr_usd": 8900,
+    "status": "active",
+    "days_past_due": 0,
+    "cancel_at_period_end": false
+  }
+]

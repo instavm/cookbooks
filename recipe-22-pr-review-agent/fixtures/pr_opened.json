@@ -1,0 +1,21 @@
+{
+  "action": "opened",
+  "number": 42,
+  "pull_request": {
+    "number": 42,
+    "title": "Add PR review agent webhook",
+    "html_url": "https://github.com/instavm/cookbooks/pull/42",
+    "user": {"login": "dev-bot"},
+    "body": "Adds webhook handler and LLM review markdown output.",
+    "diff_url": "https://github.com/instavm/cookbooks/pull/42.diff",
+    "head": {"ref": "feature/pr-review"},
+    "base": {"ref": "main"},
+    "changed_files": 5,
+    "additions": 120,
+    "deletions": 12
+  },
+  "repository": {
+    "full_name": "instavm/cookbooks",
+    "html_url": "https://github.com/instavm/cookbooks"
+  }
+}

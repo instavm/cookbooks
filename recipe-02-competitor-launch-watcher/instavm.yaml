@@ -1,0 +1,52 @@
+schema_version: 2
+kind: service
+slug: recipe-02-competitor-launch-watcher
+title: Competitor Launch Watcher
+version: 0.1.0
+summary: Daily competitor page diff with LLM launch summary on InstaVM.
+category: agents
+runtime: python-fastapi
+deploy:
+  kind: upload_and_run
+source:
+  include:
+  - app.py
+  - agent.py
+  - lib/
+  - integrations/
+  - requirements.txt
+  - instavm.yaml
+  - README.md
+  exclude:
+  - tests/
+  - fixtures/
+  setup_command: python -m pip install --no-cache-dir -r requirements.txt
+vm:
+  memory_mb: 1024
+  vcpu_count: 1
+  timeout_seconds: 86400
+app:
+  port: 8000
+  healthcheck_path: /health
+  share_public_default: true
+  readiness_timeout_seconds: 120
+run:
+  workdir: .
+  start_command: python -m uvicorn app:app --host 0.0.0.0 --port 8000
+vault:
+  required: true
+  hosts:
+  - api.openai.com
+  - api.anthropic.com
+egress:
+  mode: allowlist
+  include_vault_hosts: true
+  allowed_domains: []
+  allow_package_managers: true
+secrets: []
+post_deploy_notes:
+- "Run `instavm vault setup .` \u2014 upstream keys are vault placeholders injected\
+  \ at egress (OPENAI_KEY, EXA_KEY, etc.)."
+- Run instavm vault setup . on first deploy to bind OpenAI/Anthropic.
+- Open share URL, GET /health, then POST /run?dry_run=1.
+- Override COMPETITOR_URLS JSON via --env to watch custom pages.

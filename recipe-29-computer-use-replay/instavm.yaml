@@ -1,0 +1,40 @@
+schema_version: 2
+kind: service
+slug: recipe-29-computer-use-replay
+title: Computer Use Replay
+version: 0.1.0
+summary: Screenshot gallery from computer-use session frames (desktop microVM profile).
+category: agents
+runtime: python-fastapi
+deploy:
+  kind: upload_and_run
+source:
+  include:
+  - app.py
+  - agent.py
+  - lib/
+  - requirements.txt
+  - instavm.yaml
+  - README.md
+  exclude:
+  - tests/
+  setup_command: python -m pip install --no-cache-dir -r requirements.txt
+vm:
+  memory_mb: 2048
+  vcpu_count: 2
+  timeout_seconds: 86400
+app:
+  port: 8000
+  healthcheck_path: /health
+  share_public_default: true
+  readiness_timeout_seconds: 120
+run:
+  workdir: .
+  start_command: python -m uvicorn app:app --host 0.0.0.0 --port 8000
+egress:
+  mode: allowlist
+  allow_package_managers: true
+post_deploy_notes:
+- No vault required — placeholder frames are generated locally.
+- Open share URL → GET / for frame gallery, POST /capture to refresh.
+secrets: []

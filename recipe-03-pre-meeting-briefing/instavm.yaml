@@ -1,0 +1,55 @@
+schema_version: 2
+kind: service
+slug: recipe-03-pre-meeting-briefing
+title: Pre-Meeting Briefing
+version: 0.1.0
+summary: Cal.com webhook triggers Exa research and markdown investor briefings on
+  InstaVM.
+category: agents
+runtime: python-fastapi
+deploy:
+  kind: upload_and_run
+source:
+  include:
+  - app.py
+  - agent.py
+  - lib/
+  - integrations/
+  - requirements.txt
+  - instavm.yaml
+  - README.md
+  exclude:
+  - tests/
+  - fixtures/
+  setup_command: python -m pip install --no-cache-dir -r requirements.txt
+vm:
+  memory_mb: 1024
+  vcpu_count: 1
+  timeout_seconds: 86400
+app:
+  port: 8000
+  healthcheck_path: /health
+  share_public_default: true
+  readiness_timeout_seconds: 120
+run:
+  workdir: .
+  start_command: python -m uvicorn app:app --host 0.0.0.0 --port 8000
+vault:
+  required: true
+  hosts:
+  - api.openai.com
+  - api.anthropic.com
+  - api.exa.ai
+egress:
+  mode: allowlist
+  include_vault_hosts: true
+  allowed_domains:
+  - api.exa.ai
+  allow_package_managers: true
+secrets: []
+post_deploy_notes:
+- "Run `instavm vault setup .` \u2014 upstream keys are vault placeholders injected\
+  \ at egress (OPENAI_KEY, EXA_KEY, etc.)."
+- Run instavm vault setup . on first deploy to bind Exa + OpenAI/Anthropic.
+- Point Cal.com webhook to POST /webhook/cal on the share URL.
+- POST /run?dry_run=1 uses a sample attendee for smoke testing.

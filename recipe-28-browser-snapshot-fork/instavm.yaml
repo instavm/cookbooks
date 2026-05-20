@@ -1,0 +1,48 @@
+schema_version: 2
+kind: service
+slug: recipe-28-browser-snapshot-fork
+title: Browser Snapshot Fork
+version: 0.1.0
+summary: Fork a browser snapshot into parallel InstaVM child sandboxes (OpenAI Agents
+  SDK provider).
+category: agents
+runtime: python-fastapi
+deploy:
+  kind: upload_and_run
+source:
+  include:
+  - app.py
+  - agent.py
+  - lib/
+  - requirements.txt
+  - instavm.yaml
+  - README.md
+  exclude:
+  - tests/
+  setup_command: python -m pip install --no-cache-dir -r requirements.txt
+vm:
+  memory_mb: 2048
+  vcpu_count: 2
+  timeout_seconds: 7200
+app:
+  port: 8000
+  healthcheck_path: /health
+  share_public_default: true
+  readiness_timeout_seconds: 180
+run:
+  workdir: .
+  start_command: python -m uvicorn app:app --host 0.0.0.0 --port 8000
+secrets: []
+egress:
+  mode: allowlist
+  include_vault_hosts: true
+  allowed_domains:
+  - api.instavm.io
+  allow_package_managers: true
+post_deploy_notes:
+- Bind instavm.dev / platform API via INSTAVM_KEY for live forks.
+- Set INSTAVM_FORK_MOCK=1 for offline parallel child stubs.
+vault:
+  required: true
+  hosts:
+  - api.instavm.io

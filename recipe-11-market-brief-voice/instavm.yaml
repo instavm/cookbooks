@@ -1,0 +1,54 @@
+schema_version: 2
+kind: service
+slug: recipe-11-market-brief-voice
+title: Market Brief Voice
+version: 0.1.0
+summary: Daily Linkup market news, LLM spoken script, Cartesia TTS stub, MP3 on persistent
+  volume.
+category: agents
+runtime: python-fastapi
+deploy:
+  kind: upload_and_run
+source:
+  include:
+  - app.py
+  - agent.py
+  - lib/
+  - integrations/
+  - requirements.txt
+  - instavm.yaml
+  - README.md
+  exclude:
+  - tests/
+  - fixtures/
+  setup_command: python -m pip install --no-cache-dir -r requirements.txt
+vm:
+  memory_mb: 1024
+  vcpu_count: 1
+  timeout_seconds: 86400
+app:
+  port: 8000
+  healthcheck_path: /health
+  share_public_default: true
+  readiness_timeout_seconds: 120
+run:
+  workdir: .
+  start_command: python -m uvicorn app:app --host 0.0.0.0 --port 8000
+vault:
+  required: true
+  hosts:
+  - api.openai.com
+  - api.anthropic.com
+  - api.linkup.so
+  - api.cartesia.ai
+egress:
+  mode: allowlist
+  include_vault_hosts: true
+  allowed_domains:
+  - api.linkup.so
+  - api.cartesia.ai
+  allow_package_managers: true
+secrets: []
+post_deploy_notes:
+- Run `instavm vault setup .` — bind api.linkup.so, api.cartesia.ai, api.openai.com.
+- GET /health, POST /run?dry_run=1, GET /audio/latest

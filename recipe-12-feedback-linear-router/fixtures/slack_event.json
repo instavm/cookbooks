@@ -1,0 +1,10 @@
+{
+  "type": "event_callback",
+  "event": {
+    "type": "message",
+    "channel": "C01234567",
+    "user": "U01234567",
+    "text": "The export feature keeps failing when I upload CSV files larger than 10MB. This has happened three times this week.",
+    "ts": "1710000000.000100"
+  }
+}
