@@ -1,0 +1,50 @@
+schema_version: 2
+kind: service
+slug: recipe-22-pr-review-agent
+title: PR Review Agent
+version: 0.1.0
+summary: PR webhook to review comments.
+category: agents
+runtime: python-fastapi
+deploy:
+  kind: upload_and_run
+source:
+  include:
+  - app.py
+  - agent.py
+  - lib/
+  - fixtures/
+  - requirements.txt
+  - instavm.yaml
+  - README.md
+  exclude:
+  - tests/
+  setup_command: python -m pip install --no-cache-dir -r requirements.txt
+vm:
+  memory_mb: 1024
+  vcpu_count: 1
+  timeout_seconds: 86400
+app:
+  port: 8000
+  healthcheck_path: /health
+  share_public_default: true
+  readiness_timeout_seconds: 120
+run:
+  workdir: .
+  start_command: python -m uvicorn app:app --host 0.0.0.0 --port 8000
+vault:
+  required: true
+  hosts:
+  - api.openai.com
+  - api.anthropic.com
+  - api.github.com
+egress:
+  mode: allowlist
+  include_vault_hosts: true
+  allowed_domains:
+  - api.github.com
+  allow_package_managers: true
+secrets: []
+post_deploy_notes:
+- Run `instavm vault setup .` — bind api.github.com, api.openai.com.
+- GET /health, POST /webhook/github?dry_run=1

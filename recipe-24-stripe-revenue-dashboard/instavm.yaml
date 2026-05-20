@@ -1,0 +1,49 @@
+schema_version: 2
+kind: service
+slug: recipe-24-stripe-revenue-dashboard
+title: Stripe Revenue Dashboard
+version: 0.1.0
+summary: Live Stripe KPI dashboard.
+category: agents
+runtime: python-fastapi
+deploy:
+  kind: upload_and_run
+source:
+  include:
+  - app.py
+  - lib/
+  - integrations/
+  - requirements.txt
+  - instavm.yaml
+  - README.md
+  exclude:
+  - tests/
+  - agent.py
+  setup_command: python -m pip install --no-cache-dir -r requirements.txt
+vm:
+  memory_mb: 1024
+  vcpu_count: 1
+  timeout_seconds: 86400
+app:
+  port: 8000
+  healthcheck_path: /health
+  share_public_default: true
+  readiness_timeout_seconds: 120
+run:
+  workdir: .
+  start_command: python -m uvicorn app:app --host 0.0.0.0 --port 8000
+egress:
+  mode: allowlist
+  include_vault_hosts: true
+  allowed_domains:
+  - api.stripe.com
+  allow_package_managers: true
+secrets: []
+post_deploy_notes:
+- Run `instavm vault setup .` to bind api.stripe.com (STRIPE_KEY).
+- Open share URL → GET /health, then GET / for the HTML dashboard.
+- Set STRIPE_MOCK=1 via --env for offline demo data.
+vault:
+  required: true
+  hosts:
+  - api.stripe.com

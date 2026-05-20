@@ -1,6 +1,29 @@
 */dist/
 */node_modules/
 */.venv/
+**/.pytest_cache/
 */__pycache__/
 *.pyc
 .DS_Store
+
+# Secrets and local credentials — never commit
+.env
+.env.*
+*.pem
+*.key
+**/secrets.json
+**/.instavm/
+.instavm/
+
+# Local deploy smoke logs
+.deploy-batch-logs/
+
+# Local / unrelated worktrees (not part of recipe cookbooks PR)
+hermes-telegram-agent/
+the-instavm-cookbook-29-production-ai-agent-recipes.html
+
+# Local key files (loaded at runtime via lib/secrets.py, not in repo)
+.openai
+.anthropic
+.mailtrap
+.services/

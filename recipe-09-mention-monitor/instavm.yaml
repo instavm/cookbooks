@@ -1,0 +1,53 @@
+schema_version: 2
+kind: service
+slug: recipe-09-mention-monitor
+title: Mention Monitor
+version: 0.1.0
+summary: Poll HN Algolia and Reddit RSS for brand mentions, LLM-score relevance, alert
+  via Slack webhook.
+category: agents
+runtime: python-fastapi
+deploy:
+  kind: upload_and_run
+source:
+  include:
+  - app.py
+  - agent.py
+  - lib/
+  - integrations/
+  - requirements.txt
+  - instavm.yaml
+  - README.md
+  exclude:
+  - tests/
+  - fixtures/
+  setup_command: python -m pip install --no-cache-dir -r requirements.txt
+vm:
+  memory_mb: 1024
+  vcpu_count: 1
+  timeout_seconds: 86400
+app:
+  port: 8000
+  healthcheck_path: /health
+  share_public_default: true
+  readiness_timeout_seconds: 120
+run:
+  workdir: .
+  start_command: python -m uvicorn app:app --host 0.0.0.0 --port 8000
+vault:
+  required: true
+  hosts:
+  - api.openai.com
+  - api.anthropic.com
+egress:
+  mode: allowlist
+  include_vault_hosts: true
+  allowed_domains:
+  - hn.algolia.com
+  - www.reddit.com
+  - hooks.slack.com
+  allow_package_managers: true
+secrets: []
+post_deploy_notes:
+- Run `instavm vault setup .` — bind api.openai.com, hooks.slack.com.
+- GET /health, POST /run?dry_run=1

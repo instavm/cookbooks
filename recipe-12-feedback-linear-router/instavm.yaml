@@ -1,0 +1,52 @@
+schema_version: 2
+kind: service
+slug: recipe-12-feedback-linear-router
+title: Feedback Linear Router
+version: 0.1.0
+summary: Slack webhook feedback ingestion, LLM classification, Linear issue creation
+  via mock/API.
+category: agents
+runtime: python-fastapi
+deploy:
+  kind: upload_and_run
+source:
+  include:
+  - app.py
+  - agent.py
+  - lib/
+  - integrations/
+  - requirements.txt
+  - instavm.yaml
+  - README.md
+  exclude:
+  - tests/
+  - fixtures/
+  setup_command: python -m pip install --no-cache-dir -r requirements.txt
+vm:
+  memory_mb: 1024
+  vcpu_count: 1
+  timeout_seconds: 86400
+app:
+  port: 8000
+  healthcheck_path: /health
+  share_public_default: true
+  readiness_timeout_seconds: 120
+run:
+  workdir: .
+  start_command: python -m uvicorn app:app --host 0.0.0.0 --port 8000
+vault:
+  required: true
+  hosts:
+  - api.openai.com
+  - api.anthropic.com
+  - api.linear.app
+egress:
+  mode: allowlist
+  include_vault_hosts: true
+  allowed_domains:
+  - api.linear.app
+  allow_package_managers: true
+secrets: []
+post_deploy_notes:
+- Run `instavm vault setup .` — bind api.linear.app, api.openai.com.
+- GET /health, POST /webhook/slack?dry_run=1
