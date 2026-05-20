@@ -37,7 +37,7 @@ def synthesize_intro(script: str, *, client: httpx.Client | None = None) -> TTSR
             CARTESIA_URL,
             headers={"Authorization": f"Bearer {key}", "Cartesia-Version": "2025-04-16"},
             json={
-                "model_id": os.environ.get("CARTESIA_MODEL", "sonic-english"),
+                "model_id": os.environ.get("CARTESIA_MODEL", "sonic-3.5"),
                 "transcript": script[:500],
                 "voice": {"mode": "id", "id": os.environ.get("CARTESIA_VOICE_ID", "default")},
                 "output_format": {"container": "mp3", "encoding": "mp3", "sample_rate": 44100},

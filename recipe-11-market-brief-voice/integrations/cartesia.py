@@ -28,7 +28,7 @@ def synthesize(script: str, *, client: httpx.Client | None = None) -> TTSResult:
         CARTESIA_API,
         headers={"Authorization": f"Bearer {key}", "Cartesia-Version": "2025-04-16"},
         json={
-            "model_id": "sonic-2",
+            "model_id": "sonic-3.5",
             "transcript": script,
             "voice": {"mode": "id", "id": "694f9389-aac1-45b6-b726-9d9369183238"},
             "output_format": {"container": "mp3", "encoding": "mp3", "sample_rate": 44100},
