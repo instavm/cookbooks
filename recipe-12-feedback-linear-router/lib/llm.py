@@ -32,6 +32,8 @@ class LLMClient:
         self.openai_model = os.environ.get("OPENAI_MODEL", "gpt-5.4-nano")
         self.anthropic_model = os.environ.get("ANTHROPIC_MODEL", "claude-haiku-4-5")
         self._http = client
+        self._openai_sdk: OpenAI | None = None
+        self._anthropic_sdk: Anthropic | None = None
 
     def complete(self, system: str, user: str) -> LLMResult:
         if self.provider == "anthropic":
@@ -47,10 +49,20 @@ class LLMClient:
         except json.JSONDecodeError as exc:
             raise ValueError(f"LLM returned invalid JSON: {exc}") from exc
 
+    def _openai_client(self) -> OpenAI:
+        if self._openai_sdk is None:
+            key = vault_credential_strict("OPENAI_API_KEY")
+            self._openai_sdk = OpenAI(api_key=key, http_client=self._http, timeout=60.0)
+        return self._openai_sdk
+
+    def _anthropic_client(self) -> Anthropic:
+        if self._anthropic_sdk is None:
+            key = vault_credential_strict("ANTHROPIC_API_KEY")
+            self._anthropic_sdk = Anthropic(api_key=key, http_client=self._http, timeout=60.0)
+        return self._anthropic_sdk
+
     def _openai(self, system: str, user: str) -> LLMResult:
-        key = vault_credential_strict("OPENAI_API_KEY")
-        client = OpenAI(api_key=key, http_client=self._http, timeout=60.0)
-        resp = client.chat.completions.create(
+        resp = self._openai_client().chat.completions.create(
             model=self.openai_model,
             temperature=0.2,
             messages=[
@@ -62,9 +74,7 @@ class LLMClient:
         return LLMResult(text=text, provider="openai", model=self.openai_model)
 
     def _anthropic(self, system: str, user: str) -> LLMResult:
-        key = vault_credential_strict("ANTHROPIC_API_KEY")
-        client = Anthropic(api_key=key, http_client=self._http, timeout=60.0)
-        resp = client.messages.create(
+        resp = self._anthropic_client().messages.create(
             model=self.anthropic_model,
             max_tokens=2048,
             system=system,
