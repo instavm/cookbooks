@@ -3,8 +3,7 @@ kind: service
 slug: recipe-06-investor-update-assembler
 title: Investor Update Assembler
 version: 0.1.0
-summary: Monthly Stripe MRR + GitHub velocity assembled into investor updates with
-  KPI history on a persistent volume.
+summary: Monthly Stripe MRR + GitHub velocity assembled into investor updates with KPI history on a persistent volume.
 category: agents
 runtime: python-fastapi
 deploy:
@@ -48,7 +47,22 @@ egress:
   - api.stripe.com
   - api.github.com
   allow_package_managers: true
-secrets: []
+secrets:
+- name: OpenAI
+  prompt: OpenAI API key (for chat completions)
+  env_name: OPENAI_API_KEY
+- name: Anthropic
+  prompt: Anthropic API key (for Claude completions)
+  env_name: ANTHROPIC_API_KEY
+- name: GitHub
+  prompt: GitHub personal access token
+  env_name: GITHUB_TOKEN
+- name: Mailtrap
+  prompt: Mailtrap SMTP API token
+  env_name: MAILTRAP_API_TOKEN
+- name: Stripe
+  prompt: Stripe restricted API key
+  env_name: STRIPE_KEY
 post_deploy_notes:
-- Run `instavm vault setup .` — bind api.stripe.com, api.github.com, api.openai.com.
+- "Run `instavm vault setup .` \u2014 bind api.stripe.com, api.github.com, api.openai.com."
 - GET /health, then POST /run?dry_run=1

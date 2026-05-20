@@ -14,9 +14,9 @@ Each cookbook lives at the repo root:
 python3 scripts/validate_manifests.py
 ```
 
-## 29 Production AI Agent Recipes
+## 27 Production AI Agent Recipes
 
-Standalone InstaVM recipe cookbooks (#01–#31, skipping #10 and #27 which live elsewhere). Each directory is **copy-deployable** with `instavm deploy .` (YAML v2). Every recipe includes unit + smoke tests under `tests/`.
+Standalone InstaVM recipe cookbooks numbered `recipe-01-…` through `recipe-31-…` (slots #10 and #27 are filled by the two pre-existing cookbooks [`deep-research-exa`](deep-research-exa/) and [`vscode-microvm`](vscode-microvm/) and are not listed in the tables below). Each directory is **copy-deployable** with `instavm deploy .` (YAML v2). Every recipe includes unit + smoke tests under `tests/`.
 
 ```bash
 cd recipe-08-hn-signal-scanner
@@ -59,7 +59,6 @@ Apply vault pattern to all recipes: `python3 scripts/apply_vault_pattern.py`
 | 07 | [`recipe-07-substack-distribution`](recipe-07-substack-distribution/) | Substack → LinkedIn/X variants |
 | 08 | [`recipe-08-hn-signal-scanner`](recipe-08-hn-signal-scanner/) | HN Algolia digest with LLM filter (**golden template**) |
 | 09 | [`recipe-09-mention-monitor`](recipe-09-mention-monitor/) | Brand mention monitor → Slack |
-| 10 | [`deep-research-exa`](deep-research-exa/) | *Existing* — multi-source deep research |
 | 11 | [`recipe-11-market-brief-voice`](recipe-11-market-brief-voice/) | Market brief script + optional TTS |
 | 12 | [`recipe-12-feedback-linear-router`](recipe-12-feedback-linear-router/) | Slack feedback → Linear issues |
 
@@ -84,7 +83,6 @@ Apply vault pattern to all recipes: `python3 scripts/apply_vault_pattern.py`
 
 | # | Slug | Summary |
 |---|------|---------|
-| 27 | [`vscode-microvm`](vscode-microvm/) | *Existing* — VS Code over SSH/workspace |
 | 28 | [`recipe-28-browser-snapshot-fork`](recipe-28-browser-snapshot-fork/) | Parallel child sandbox fork demo |
 | 29 | [`recipe-29-computer-use-replay`](recipe-29-computer-use-replay/) | Screenshot gallery replay |
 | 30 | [`recipe-30-mcp-server-hosting`](recipe-30-mcp-server-hosting/) | MCP server hosting stub |

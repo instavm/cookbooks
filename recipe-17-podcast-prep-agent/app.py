@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import os
 
 from fastapi import FastAPI, HTTPException
@@ -10,6 +11,7 @@ from pydantic import BaseModel, Field
 import agent
 
 app = FastAPI(title="Podcast Prep Agent")
+_log = logging.getLogger(__name__)
 
 
 class TranscriptRequest(BaseModel):
@@ -43,8 +45,9 @@ def transcript(body: TranscriptRequest, dry_run: bool = False) -> PrepResponse:
             with_tts=body.with_tts,
             dry_run=dry_run,
         )
-    except Exception as exc:  # noqa: BLE001
-        raise HTTPException(status_code=502, detail=str(exc)) from exc
+    except Exception:
+        _log.exception("request failed")
+        raise HTTPException(status_code=502, detail="upstream error")
     return PrepResponse(
         show_notes=result.show_notes,
         tts_stub=result.tts_stub,

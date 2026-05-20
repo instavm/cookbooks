@@ -36,9 +36,12 @@ egress:
   allowed_domains: []
   allow_package_managers: true
 post_deploy_notes:
-- No third-party vault hosts — MCP SSE stub only.
+- "No third-party vault hosts \u2014 MCP SSE stub only."
 - GET /health and GET /mcp/sse on the share URL.
-secrets: []
+secrets:
+- name: Mailtrap
+  prompt: Mailtrap SMTP API token
+  env_name: MAILTRAP_API_TOKEN
 vault:
   required: false
   hosts:

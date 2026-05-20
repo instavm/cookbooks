@@ -1,17 +1,21 @@
 from __future__ import annotations
 
+import json
+import logging
 import os
 from typing import Any
 
-from fastapi import FastAPI, HTTPException
-from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.responses import HTMLResponse, PlainTextResponse
 from lib.ui import landing_page
-from pydantic import BaseModel, Field
+from lib.webhooks import enforce_cal_signature
+from pydantic import BaseModel, Field, ValidationError
 
 import agent
 from lib.config import SAMPLE_ATTENDEE
 
 app = FastAPI(title="Pre-Meeting Briefing")
+_log = logging.getLogger(__name__)
 
 
 class RunResponse(BaseModel):
@@ -52,8 +56,9 @@ def health() -> dict[str, str]:
 def run(dry_run: bool = False) -> RunResponse:
     try:
         result = agent.run_briefing(SAMPLE_ATTENDEE, dry_run=dry_run)
-    except Exception as exc:  # noqa: BLE001
-        raise HTTPException(status_code=502, detail=str(exc)) from exc
+    except Exception:
+        _log.exception("run_briefing failed")
+        raise HTTPException(status_code=502, detail="upstream error")
     return RunResponse(
         fetched=result.fetched,
         new=result.new,
@@ -64,12 +69,26 @@ def run(dry_run: bool = False) -> RunResponse:
     )
 
 
+async def _verified_cal_event(request: Request) -> CalEvent:
+    body_bytes = await request.body()
+    enforce_cal_signature(body_bytes, request.headers.get("X-Cal-Signature-256"))
+    try:
+        payload = json.loads(body_bytes or b"{}")
+        return CalEvent.model_validate(payload)
+    except (ValidationError, json.JSONDecodeError) as exc:
+        raise HTTPException(status_code=400, detail="invalid payload") from exc
+
+
 @app.post("/webhook/cal", response_model=CalWebhookResponse)
-def webhook_cal(event: CalEvent, dry_run: bool = False) -> CalWebhookResponse:
+async def webhook_cal(request: Request, dry_run: bool = False) -> CalWebhookResponse:
+    event = await _verified_cal_event(request)
     try:
         result = agent.build_briefing(event.model_dump(), dry_run=dry_run)
-    except Exception as exc:  # noqa: BLE001
-        raise HTTPException(status_code=502, detail=str(exc)) from exc
+    except HTTPException:
+        raise
+    except Exception:
+        _log.exception("build_briefing failed")
+        raise HTTPException(status_code=502, detail="upstream error")
     return CalWebhookResponse(
         attendee_name=result.attendee_name,
         attendee_email=result.attendee_email,
@@ -81,11 +100,15 @@ def webhook_cal(event: CalEvent, dry_run: bool = False) -> CalWebhookResponse:
 
 
 @app.post("/webhook/cal/markdown")
-def webhook_cal_markdown(event: CalEvent, dry_run: bool = False) -> PlainTextResponse:
+async def webhook_cal_markdown(request: Request, dry_run: bool = False) -> PlainTextResponse:
+    event = await _verified_cal_event(request)
     try:
         result = agent.build_briefing(event.model_dump(), dry_run=dry_run)
-    except Exception as exc:  # noqa: BLE001
-        raise HTTPException(status_code=502, detail=str(exc)) from exc
+    except HTTPException:
+        raise
+    except Exception:
+        _log.exception("build_briefing failed")
+        raise HTTPException(status_code=502, detail="upstream error")
     return PlainTextResponse(result.briefing, media_type="text/markdown")
 
 
@@ -103,4 +126,3 @@ def index() -> HTMLResponse:
             pills=["vault-backed", "egress allowlist"],
         )
     )
-

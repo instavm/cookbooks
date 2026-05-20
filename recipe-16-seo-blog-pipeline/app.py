@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import os
 
 from fastapi import FastAPI, HTTPException
@@ -10,6 +11,7 @@ from pydantic import BaseModel, Field
 import agent
 
 app = FastAPI(title="SEO Blog Pipeline")
+_log = logging.getLogger(__name__)
 
 
 class TopicRequest(BaseModel):
@@ -35,8 +37,9 @@ def health() -> dict[str, str]:
 def topic(body: TopicRequest, dry_run: bool = False) -> TopicResponse:
     try:
         result = agent.generate_blog(body.topic, dry_run=dry_run)
-    except Exception as exc:  # noqa: BLE001
-        raise HTTPException(status_code=502, detail=str(exc)) from exc
+    except Exception:
+        _log.exception("request failed")
+        raise HTTPException(status_code=502, detail="upstream error")
     return TopicResponse(topic=result.topic, draft=result.draft, dry_run=result.dry_run)
 
 

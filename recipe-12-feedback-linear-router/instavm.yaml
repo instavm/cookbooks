@@ -3,8 +3,7 @@ kind: service
 slug: recipe-12-feedback-linear-router
 title: Feedback Linear Router
 version: 0.1.0
-summary: Slack webhook feedback ingestion, LLM classification, Linear issue creation
-  via mock/API.
+summary: Slack webhook feedback ingestion, LLM classification, Linear issue creation via mock/API.
 category: agents
 runtime: python-fastapi
 deploy:
@@ -46,7 +45,22 @@ egress:
   allowed_domains:
   - api.linear.app
   allow_package_managers: true
-secrets: []
+secrets:
+- name: OpenAI
+  prompt: OpenAI API key (for chat completions)
+  env_name: OPENAI_API_KEY
+- name: Anthropic
+  prompt: Anthropic API key (for Claude completions)
+  env_name: ANTHROPIC_API_KEY
+- name: Linear
+  prompt: Linear API key
+  env_name: LINEAR_API_KEY
+- name: Mailtrap
+  prompt: Mailtrap SMTP API token
+  env_name: MAILTRAP_API_TOKEN
+- name: Slack signing
+  prompt: Slack signing secret (for webhook verification)
+  env_name: SLACK_SIGNING_SECRET
 post_deploy_notes:
-- Run `instavm vault setup .` — bind api.linear.app, api.openai.com.
+- "Run `instavm vault setup .` \u2014 bind api.linear.app, api.openai.com."
 - GET /health, POST /webhook/slack?dry_run=1

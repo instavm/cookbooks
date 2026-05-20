@@ -46,7 +46,22 @@ egress:
   - api.stripe.com
   - hooks.slack.com
   allow_package_managers: true
-secrets: []
+secrets:
+- name: OpenAI
+  prompt: OpenAI API key (for chat completions)
+  env_name: OPENAI_API_KEY
+- name: Anthropic
+  prompt: Anthropic API key (for Claude completions)
+  env_name: ANTHROPIC_API_KEY
+- name: Mailtrap
+  prompt: Mailtrap SMTP API token
+  env_name: MAILTRAP_API_TOKEN
+- name: Slack
+  prompt: Slack bot/user token
+  env_name: SLACK_TOKEN
+- name: Stripe
+  prompt: Stripe restricted API key
+  env_name: STRIPE_KEY
 post_deploy_notes:
-- Run `instavm vault setup .` — bind api.stripe.com, slack.com, api.openai.com.
+- "Run `instavm vault setup .` \u2014 bind api.stripe.com, slack.com, api.openai.com."
 - GET /health, POST /run?dry_run=1

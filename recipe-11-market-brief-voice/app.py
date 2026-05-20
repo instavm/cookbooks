@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import os
 
 from fastapi import FastAPI, HTTPException
@@ -10,6 +11,7 @@ from pydantic import BaseModel
 import agent
 
 app = FastAPI(title="Market Brief Voice")
+_log = logging.getLogger(__name__)
 
 
 class BriefResponse(BaseModel):
@@ -35,8 +37,9 @@ def health() -> dict[str, str]:
 def run(dry_run: bool = False) -> BriefResponse:
     try:
         result = agent.run_brief(dry_run=dry_run)
-    except Exception as exc:  # noqa: BLE001
-        raise HTTPException(status_code=502, detail=str(exc)) from exc
+    except Exception:
+        _log.exception("request failed")
+        raise HTTPException(status_code=502, detail="upstream error")
     return BriefResponse(
         stories=result.stories,
         new_stories=result.new_stories,

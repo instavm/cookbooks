@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import os
 from typing import Any
 
@@ -12,6 +13,7 @@ import agent
 from lib.config import SAMPLE_EMAIL_SIGNAL
 
 app = FastAPI(title="Investor CRM Updater")
+_log = logging.getLogger(__name__)
 
 
 class RunResponse(BaseModel):
@@ -50,8 +52,9 @@ def health() -> dict[str, str]:
 def run(dry_run: bool = False) -> RunResponse:
     try:
         result = agent.run_crm_update(SAMPLE_EMAIL_SIGNAL, dry_run=dry_run)
-    except Exception as exc:  # noqa: BLE001
-        raise HTTPException(status_code=502, detail=str(exc)) from exc
+    except Exception:
+        _log.exception("request failed")
+        raise HTTPException(status_code=502, detail="upstream error")
     return RunResponse(
         fetched=result.fetched,
         new=result.new,
@@ -66,8 +69,9 @@ def run(dry_run: bool = False) -> RunResponse:
 def webhook_email_signal(signal: EmailSignal, dry_run: bool = False) -> CrmResponse:
     try:
         result = agent.process_email_signal(signal.model_dump(), dry_run=dry_run)
-    except Exception as exc:  # noqa: BLE001
-        raise HTTPException(status_code=502, detail=str(exc)) from exc
+    except Exception:
+        _log.exception("request failed")
+        raise HTTPException(status_code=502, detail="upstream error")
     return CrmResponse(
         email=result.email,
         record=result.record,

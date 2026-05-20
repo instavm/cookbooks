@@ -6,7 +6,7 @@ from dataclasses import dataclass
 import httpx
 
 from lib.config import LINEAR_TEAM
-from lib.secrets import mock_enabled, vault_credential
+from lib.secrets import mock_enabled, vault_credential, vault_credential_strict
 
 LINEAR_GRAPHQL = "https://api.linear.app/graphql"
 
@@ -31,7 +31,7 @@ def fetch_team_issues(*, client: httpx.Client | None = None) -> list[LinearIssue
         return _mock_issues()
 
     http = client or httpx.Client(timeout=20.0)
-    key = vault_credential("LINEAR_API_KEY") or os.environ.get("LINEAR_API_KEY", "")
+    key = vault_credential_strict("LINEAR_API_KEY") or os.environ.get("LINEAR_API_KEY", "")
     query = """
     query($team: String!) {
       team(id: $team) {

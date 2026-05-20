@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import os
 
 from fastapi import FastAPI, HTTPException
@@ -10,6 +11,7 @@ from pydantic import BaseModel, Field
 import agent
 
 app = FastAPI(title="Voice Roadmap Notion")
+_log = logging.getLogger(__name__)
 
 
 class TranscriptPayload(BaseModel):
@@ -36,8 +38,9 @@ def health() -> dict[str, str]:
 def webhook_transcript(payload: TranscriptPayload, dry_run: bool = False) -> TranscriptResponse:
     try:
         result = agent.process_transcript(payload.transcript, dry_run=dry_run)
-    except Exception as exc:  # noqa: BLE001
-        raise HTTPException(status_code=502, detail=str(exc)) from exc
+    except Exception:
+        _log.exception("request failed")
+        raise HTTPException(status_code=502, detail="upstream error")
     return TranscriptResponse(
         items=result.items,
         notion_appended=result.notion_appended,

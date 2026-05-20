@@ -6,7 +6,7 @@ from dataclasses import dataclass
 import httpx
 
 from lib.config import SLACK_CHANNEL
-from lib.secrets import mock_enabled, vault_credential
+from lib.secrets import mock_enabled, vault_credential, vault_credential_strict
 
 SLACK_POST = "https://slack.com/api/chat.postMessage"
 
@@ -22,7 +22,7 @@ def post_digest(*, text: str, dry_run: bool = False, client: httpx.Client | None
     if dry_run or mock_enabled("SLACK_MOCK") or os.environ.get("SLACK_DRY_RUN", "").lower() in {"1", "true", "yes"}:
         return SlackResult(sent=False, dry_run=True, channel=SLACK_CHANNEL)
 
-    token = vault_credential("SLACK_TOKEN") or os.environ.get("SLACK_TOKEN", "")
+    token = vault_credential_strict("SLACK_TOKEN") or os.environ.get("SLACK_TOKEN", "")
     http = client or httpx.Client(timeout=20.0)
     resp = http.post(
         SLACK_POST,

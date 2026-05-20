@@ -46,10 +46,21 @@ egress:
   - api.exa.ai
   - sandbox.smtp.mailtrap.io
   allow_package_managers: true
-secrets: []
+secrets:
+- name: OpenAI
+  prompt: OpenAI API key (for chat completions)
+  env_name: OPENAI_API_KEY
+- name: Anthropic
+  prompt: Anthropic API key (for Claude completions)
+  env_name: ANTHROPIC_API_KEY
+- name: Exa
+  prompt: Exa API key (for web search)
+  env_name: EXA_API_KEY
+- name: Mailtrap
+  prompt: Mailtrap SMTP API token
+  env_name: MAILTRAP_API_TOKEN
 post_deploy_notes:
-- "Run `instavm vault setup .` \u2014 upstream keys are vault placeholders injected\
-  \ at egress (OPENAI_KEY, EXA_KEY, etc.)."
+- "Run `instavm vault setup .` \u2014 upstream keys are vault placeholders injected at egress (OPENAI_KEY, EXA_KEY, etc.)."
 - Run instavm vault setup . on first deploy to bind Exa + OpenAI/Anthropic.
 - Open share URL, GET /health, then POST /run?dry_run=1.
 - Set DRAFT_TO via --env at deploy for Mailtrap recipient.

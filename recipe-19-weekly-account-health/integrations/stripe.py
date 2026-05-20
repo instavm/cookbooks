@@ -6,7 +6,7 @@ from typing import Any
 
 import httpx
 
-from lib.secrets import mock_enabled, vault_credential
+from lib.secrets import mock_enabled, vault_credential, vault_credential_strict
 
 STRIPE_API = "https://api.stripe.com/v1/subscriptions"
 
@@ -28,7 +28,7 @@ def fetch_account_metrics(*, client: httpx.Client | None = None) -> AccountMetri
         return _mock_metrics()
 
     http = client or httpx.Client(timeout=30.0)
-    key = vault_credential("STRIPE_KEY")
+    key = vault_credential_strict("STRIPE_KEY")
     resp = http.get(
         STRIPE_API,
         params={"status": "active", "limit": 100},

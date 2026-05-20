@@ -5,7 +5,7 @@ from dataclasses import dataclass
 
 import httpx
 
-from lib.secrets import mock_enabled, vault_credential
+from lib.secrets import mock_enabled, vault_credential, vault_credential_strict
 
 
 @dataclass
@@ -24,7 +24,7 @@ def post_alert(
     if dry_run or mock_enabled("SLACK_MOCK") or os.environ.get("SLACK_DRY_RUN", "0") == "1":
         return SlackResult(sent=False, dry_run=True)
 
-    webhook = vault_credential("SLACK_WEBHOOK_URL") or os.environ.get("SLACK_WEBHOOK_URL", "")
+    webhook = vault_credential_strict("SLACK_WEBHOOK_URL") or os.environ.get("SLACK_WEBHOOK_URL", "")
     if not webhook:
         return SlackResult(sent=False, dry_run=True)
 

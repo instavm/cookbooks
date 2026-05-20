@@ -43,8 +43,16 @@ egress:
   include_vault_hosts: true
   allowed_domains: []
   allow_package_managers: true
-secrets: []
+secrets:
+- name: OpenAI
+  prompt: OpenAI API key (for chat completions)
+  env_name: OPENAI_API_KEY
+- name: Anthropic
+  prompt: Anthropic API key (for Claude completions)
+  env_name: ANTHROPIC_API_KEY
+- name: Mailtrap
+  prompt: Mailtrap SMTP API token
+  env_name: MAILTRAP_API_TOKEN
 post_deploy_notes:
-- "Run `instavm vault setup .` \u2014 upstream keys are vault placeholders injected\
-  \ at egress (OPENAI_KEY, EXA_KEY, etc.)."
+- "Run `instavm vault setup .` \u2014 upstream keys are vault placeholders injected at egress (OPENAI_KEY, EXA_KEY, etc.)."
 - POST /topic?dry_run=1 then GET /preview for HTML draft.

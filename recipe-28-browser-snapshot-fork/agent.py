@@ -6,7 +6,7 @@ from dataclasses import dataclass
 
 from lib.config import DEFAULT_TASKS, PARALLEL_CHILDREN
 from lib.sandbox_fork import ChildResult, ForkResult, run_parallel_fork
-from lib.secrets import mock_enabled, vault_credential
+from lib.secrets import mock_enabled, vault_credential_strict
 
 
 async def run_fork(
@@ -21,12 +21,10 @@ async def run_fork(
             children=[ChildResult(task=t, stdout=f"sandbox:{t}", exit_code=0) for t in chosen],
             snapshot_id=snapshot_id,
         )
-    api_key = vault_credential("INSTAVM_API_KEY")
-    if client is None and not api_key:
-        raise RuntimeError("INSTAVM_API_KEY is required to spawn child sandboxes")
+    api_key = vault_credential_strict("INSTAVM_API_KEY")
     return await run_parallel_fork(
         chosen,
         client=client,
-        api_key=api_key or None,
+        api_key=api_key,
         snapshot_id=snapshot_id,
     )

@@ -24,15 +24,21 @@ VAULT_PLACEHOLDERS: dict[str, str] = {
     "SLACK_TOKEN": "SLACK_KEY",
     "SLACK_SIGNING_SECRET": "SLACK_SIGNING_SECRET",
     "GITHUB_WEBHOOK_SECRET": "GITHUB_WEBHOOK_SECRET",
+    "CAL_WEBHOOK_SECRET": "CAL_WEBHOOK_SECRET",
     "INSTAVM_API_KEY": "INSTAVM_KEY",
 }
 
-_SERVICES = Path.home() / "Documents" / "projects" / ".services"
-_KNOWN: dict[str, Path] = {
+_DEFAULT_SERVICES = Path.home() / "Documents" / "projects" / ".services"
+_DEFAULT_KNOWN: dict[str, Path] = {
     "OPENAI_API_KEY": Path.home() / "Documents" / "projects" / ".openai",
     "ANTHROPIC_API_KEY": Path.home() / "Documents" / "projects" / ".anthropic",
     "MAILTRAP_API_TOKEN": Path.home() / "Documents" / "projects" / ".mailtrap",
 }
+
+
+def _services_dir() -> Path:
+    override = os.environ.get("INSTAVM_LOCAL_SECRETS_DIR", "").strip()
+    return Path(override) if override else _DEFAULT_SERVICES
 
 
 def allow_local_secrets() -> bool:
@@ -54,10 +60,11 @@ def load_secret(name: str, default: str = "") -> str:
     """Read real credentials from local files — dev/CI only, never required on InstaVM."""
     if not allow_local_secrets():
         return default
-    path = _SERVICES / name
+    services = _services_dir()
+    path = services / name
     if path.is_file():
         return path.read_text(encoding="utf-8").strip()
-    known = _KNOWN.get(name)
+    known = _DEFAULT_KNOWN.get(name)
     if known and known.is_file():
         return known.read_text(encoding="utf-8").strip()
     return default
@@ -74,6 +81,24 @@ def vault_credential(name: str, *, placeholder: str | None = None) -> str:
         if local:
             return local
     return ph
+
+
+def vault_credential_strict(name: str, *, placeholder: str | None = None) -> str:
+    """Like vault_credential but raises if only the placeholder is available.
+
+    Use at upstream call sites where calling with a placeholder string would
+    burn quota on a guaranteed-401. Skipped during DEPLOY_SMOKE.
+    """
+    value = vault_credential(name, placeholder=placeholder)
+    if deploy_smoke_mode():
+        return value
+    ph = placeholder or VAULT_PLACEHOLDERS.get(name, name)
+    if value == ph:
+        raise RuntimeError(
+            f"Credential {name!r} not bound: resolved to vault placeholder. "
+            "Bind the secret via `instavm vault setup .` or set the env var."
+        )
+    return value
 
 
 def secret_available(name: str) -> bool:

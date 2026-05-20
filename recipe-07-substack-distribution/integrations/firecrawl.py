@@ -5,7 +5,7 @@ from dataclasses import dataclass
 
 import httpx
 
-from lib.secrets import mock_enabled, vault_credential
+from lib.secrets import mock_enabled, vault_credential, vault_credential_strict
 
 FIRECRAWL_API = "https://api.firecrawl.dev/v1/scrape"
 
@@ -33,7 +33,7 @@ def scrape_url(url: str, *, client: httpx.Client | None = None) -> ScrapedPost:
     if mock_enabled("FIRECRAWL_TEST_MODE") or mock_enabled("FIRECRAWL_MOCK"):
         return _mock_post(url)
 
-    key = vault_credential("FIRECRAWL_API_KEY")
+    key = vault_credential_strict("FIRECRAWL_API_KEY")
     http = client or httpx.Client(timeout=60.0)
     resp = http.post(
         FIRECRAWL_API,

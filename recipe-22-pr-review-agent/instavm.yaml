@@ -44,7 +44,19 @@ egress:
   allowed_domains:
   - api.github.com
   allow_package_managers: true
-secrets: []
+secrets:
+- name: OpenAI
+  prompt: OpenAI API key (for chat completions)
+  env_name: OPENAI_API_KEY
+- name: Anthropic
+  prompt: Anthropic API key (for Claude completions)
+  env_name: ANTHROPIC_API_KEY
+- name: Mailtrap
+  prompt: Mailtrap SMTP API token
+  env_name: MAILTRAP_API_TOKEN
+- name: GitHub Webhook Secret
+  prompt: HMAC secret configured on the GitHub webhook (for X-Hub-Signature-256 verification)
+  env_name: GITHUB_WEBHOOK_SECRET
 post_deploy_notes:
-- Run `instavm vault setup .` — bind api.github.com, api.openai.com.
+- "Run `instavm vault setup .` \u2014 bind api.github.com, api.openai.com."
 - GET /health, POST /webhook/github?dry_run=1

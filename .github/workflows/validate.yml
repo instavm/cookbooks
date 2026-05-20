@@ -15,5 +15,13 @@ jobs:
       - run: python -m pip install pyyaml
       - run: python scripts/validate_manifests.py
       - run: bash scripts/scan_secrets.sh
+      - name: Check shared lib/ has not drifted from golden template
+        run: |
+          python scripts/sync_lib_from_golden.py
+          if ! git diff --quiet; then
+            echo "::error::recipe lib/ files drifted from recipe-08 golden. Re-run scripts/sync_lib_from_golden.py and commit."
+            git diff --stat
+            exit 1
+          fi
       - run: bash scripts/run_recipe_tests.sh
       - run: bash scripts/run_recipe_e2e.sh

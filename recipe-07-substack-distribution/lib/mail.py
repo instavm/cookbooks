@@ -5,7 +5,7 @@ import smtplib
 from dataclasses import dataclass
 from email.message import EmailMessage
 
-from lib.secrets import vault_credential
+from lib.secrets import vault_credential_strict
 
 
 @dataclass
@@ -20,7 +20,7 @@ def send_email(*, to: str, subject: str, body: str, dry_run: bool = False) -> Ma
     if dry_run or os.environ.get("MAIL_DRY_RUN", "").lower() in {"1", "true", "yes"}:
         return MailResult(sent=False, dry_run=True, recipient=to, subject=subject)
 
-    token = vault_credential("MAILTRAP_API_TOKEN")
+    token = vault_credential_strict("MAILTRAP_API_TOKEN")
     host = os.environ.get("MAILTRAP_HOST", "sandbox.smtp.mailtrap.io")
     port = int(os.environ.get("MAILTRAP_PORT", "2525"))
     user = os.environ.get("MAILTRAP_USER") or token

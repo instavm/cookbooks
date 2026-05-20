@@ -35,7 +35,10 @@ run:
 post_deploy_notes:
 - Bind api.openai.com via vault for live replay; cassette works offline.
 - POST /replay returns REPLAY_OK from fixtures/cassette.jsonl.
-secrets: []
+secrets:
+- name: Mailtrap
+  prompt: Mailtrap SMTP API token
+  env_name: MAILTRAP_API_TOKEN
 vault:
   required: false
   hosts:

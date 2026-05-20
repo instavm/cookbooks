@@ -7,7 +7,7 @@ from typing import Any
 
 import httpx
 
-from lib.secrets import vault_credential
+from lib.secrets import vault_credential_strict
 
 OPENAI_URL = "https://api.openai.com/v1/chat/completions"
 ANTHROPIC_URL = "https://api.anthropic.com/v1/messages"
@@ -42,7 +42,7 @@ class LLMClient:
             raise ValueError(f"LLM returned invalid JSON: {exc}") from exc
 
     def _openai(self, system: str, user: str) -> LLMResult:
-        key = vault_credential("OPENAI_API_KEY")
+        key = vault_credential_strict("OPENAI_API_KEY")
         resp = self._client.post(
             OPENAI_URL,
             headers={"Authorization": f"Bearer {key}"},
@@ -57,7 +57,7 @@ class LLMClient:
         return LLMResult(text=text, provider="openai", model=self.openai_model)
 
     def _anthropic(self, system: str, user: str) -> LLMResult:
-        key = vault_credential("ANTHROPIC_API_KEY")
+        key = vault_credential_strict("ANTHROPIC_API_KEY")
         resp = self._client.post(
             ANTHROPIC_URL,
             headers={"x-api-key": key, "anthropic-version": "2023-06-01"},

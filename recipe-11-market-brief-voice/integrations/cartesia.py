@@ -6,7 +6,7 @@ from dataclasses import dataclass
 import httpx
 
 from lib.config import CARTESIA_ENABLED
-from lib.secrets import mock_enabled, vault_credential
+from lib.secrets import mock_enabled, vault_credential, vault_credential_strict
 
 CARTESIA_API = "https://api.cartesia.ai/tts/bytes"
 PLACEHOLDER_MP3 = b"ID3\x03\x00\x00\x00\x00\x00\x00market-brief-placeholder"
@@ -22,7 +22,7 @@ def synthesize(script: str, *, client: httpx.Client | None = None) -> TTSResult:
     if mock_enabled("CARTESIA_MOCK") or not CARTESIA_ENABLED:
         return TTSResult(audio=PLACEHOLDER_MP3 + script[:32].encode("utf-8"), stub=True)
 
-    key = vault_credential("CARTESIA_API_KEY")
+    key = vault_credential_strict("CARTESIA_API_KEY")
     http = client or httpx.Client(timeout=120.0)
     resp = http.post(
         CARTESIA_API,

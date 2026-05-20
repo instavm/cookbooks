@@ -5,7 +5,7 @@ from datetime import date
 
 import httpx
 
-from lib.secrets import mock_enabled, vault_credential
+from lib.secrets import mock_enabled, vault_credential, vault_credential_strict
 
 STRIPE_SUBS = "https://api.stripe.com/v1/subscriptions"
 
@@ -37,7 +37,7 @@ def fetch_revenue_kpis(*, client: httpx.Client | None = None) -> RevenueKPIs:
         return _mock_kpis()
 
     http = client or httpx.Client(timeout=30.0)
-    key = vault_credential("STRIPE_KEY")
+    key = vault_credential_strict("STRIPE_KEY")
     headers = {"Authorization": f"Bearer {key}"}
     subs_resp = http.get(STRIPE_SUBS, params={"status": "active", "limit": 100}, headers=headers)
     subs_resp.raise_for_status()

@@ -35,6 +35,9 @@ egress:
   mode: allowlist
   allow_package_managers: true
 post_deploy_notes:
-- No vault required — placeholder frames are generated locally.
-- Open share URL → GET / for frame gallery, POST /capture to refresh.
-secrets: []
+- "No vault required \u2014 placeholder frames are generated locally."
+- "Open share URL \u2192 GET / for frame gallery, POST /capture to refresh."
+secrets:
+- name: Mailtrap
+  prompt: Mailtrap SMTP API token
+  env_name: MAILTRAP_API_TOKEN

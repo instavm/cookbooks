@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import os
 
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
@@ -10,6 +11,7 @@ from pydantic import BaseModel, Field
 import agent
 
 app = FastAPI(title="Lost Deal Post-Mortem")
+_log = logging.getLogger(__name__)
 
 
 class TranscriptRequest(BaseModel):
@@ -52,8 +54,9 @@ def _analyze(text: str, deal_name: str, *, dry_run: bool) -> PostmortemResponse:
         raise HTTPException(status_code=400, detail="Transcript too short")
     try:
         result = agent.analyze_transcript(text, deal_name=deal_name, dry_run=dry_run)
-    except Exception as exc:  # noqa: BLE001
-        raise HTTPException(status_code=502, detail=str(exc)) from exc
+    except Exception:
+        _log.exception("request failed")
+        raise HTTPException(status_code=502, detail="upstream error")
     return PostmortemResponse(postmortem=result.postmortem, dry_run=result.dry_run)
 
 

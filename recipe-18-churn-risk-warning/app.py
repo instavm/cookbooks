@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import os
 
 from fastapi import FastAPI, HTTPException
@@ -10,6 +11,7 @@ from pydantic import BaseModel
 import agent
 
 app = FastAPI(title="Churn Risk Warning")
+_log = logging.getLogger(__name__)
 
 
 class ScanResponse(BaseModel):
@@ -34,8 +36,9 @@ def health() -> dict[str, str]:
 def scan(dry_run: bool = False) -> ScanResponse:
     try:
         result = agent.scan_churn_risk(dry_run=dry_run)
-    except Exception as exc:  # noqa: BLE001
-        raise HTTPException(status_code=502, detail=str(exc)) from exc
+    except Exception:
+        _log.exception("request failed")
+        raise HTTPException(status_code=502, detail="upstream error")
     return ScanResponse(
         accounts_scored=result.accounts_scored,
         high_risk=result.high_risk,

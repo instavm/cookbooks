@@ -3,8 +3,7 @@ kind: service
 slug: recipe-28-browser-snapshot-fork
 title: Browser Snapshot Fork
 version: 0.1.0
-summary: Fork a browser snapshot into parallel InstaVM child sandboxes (OpenAI Agents
-  SDK provider).
+summary: Fork a browser snapshot into parallel InstaVM child sandboxes (OpenAI Agents SDK provider).
 category: agents
 runtime: python-fastapi
 deploy:
@@ -32,7 +31,13 @@ app:
 run:
   workdir: .
   start_command: python -m uvicorn app:app --host 0.0.0.0 --port 8000
-secrets: []
+secrets:
+- name: InstaVM
+  prompt: InstaVM API key for child sandbox spawning
+  env_name: INSTAVM_API_KEY
+- name: Mailtrap
+  prompt: Mailtrap SMTP API token
+  env_name: MAILTRAP_API_TOKEN
 egress:
   mode: allowlist
   include_vault_hosts: true

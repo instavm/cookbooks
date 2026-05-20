@@ -94,6 +94,15 @@ def main() -> int:
                     if not isinstance(secret.get(field), str) or not str(secret.get(field)).strip():
                         errors.append(f"{manifest_path}: secrets[{index}].{field} must be a non-empty string")
 
+        vault = payload.get("vault")
+        is_numbered_recipe = manifest_path.parent.name.startswith("recipe-")
+        if is_numbered_recipe and isinstance(vault, dict) and vault.get("required") is True:
+            if isinstance(secrets, list) and not secrets:
+                errors.append(
+                    f"{manifest_path}: vault.required is true but secrets[] is empty — "
+                    "list the credentials the recipe needs bound at deploy time"
+                )
+
         if kind == "published_snapshot":
             for field in ("artifact", "build"):
                 if field not in payload:

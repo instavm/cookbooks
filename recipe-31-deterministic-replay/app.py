@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import logging
+
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import HTMLResponse, JSONResponse
 from lib.ui import landing_page
@@ -8,6 +10,7 @@ from pydantic import BaseModel
 import agent
 
 app = FastAPI(title="Deterministic Replay")
+_log = logging.getLogger(__name__)
 
 
 class ReplayResponse(BaseModel):
@@ -24,8 +27,9 @@ def health() -> dict[str, str]:
 def replay() -> ReplayResponse:
     try:
         result = agent.run_replay()
-    except Exception as exc:  # noqa: BLE001
-        raise HTTPException(status_code=502, detail=str(exc)) from exc
+    except Exception:
+        _log.exception("request failed")
+        raise HTTPException(status_code=502, detail="upstream error")
     return ReplayResponse(content=result.content, deterministic=result.deterministic)
 
 

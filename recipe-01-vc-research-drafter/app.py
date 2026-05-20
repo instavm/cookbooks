@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import os
 
 from fastapi import FastAPI, HTTPException
@@ -8,9 +9,10 @@ from lib.ui import landing_page
 from pydantic import BaseModel
 
 import agent
-from lib.config import DRAFT_TO, VC_THESIS
+from lib.config import VC_THESIS
 
 app = FastAPI(title="VC Research Drafter")
+_log = logging.getLogger(__name__)
 
 
 class RunResponse(BaseModel):
@@ -36,8 +38,9 @@ def health() -> dict[str, str]:
 def run(dry_run: bool = False) -> RunResponse:
     try:
         result = agent.run_draft(dry_run=dry_run)
-    except Exception as exc:  # noqa: BLE001
-        raise HTTPException(status_code=502, detail=str(exc)) from exc
+    except Exception:
+        _log.exception("request failed")
+        raise HTTPException(status_code=502, detail="upstream error")
     return RunResponse(
         fetched=result.fetched,
         new=result.new,

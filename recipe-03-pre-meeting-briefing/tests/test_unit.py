@@ -1,7 +1,17 @@
+import hashlib
+import hmac
+import json
+
 import httpx
+from fastapi.testclient import TestClient
 
 from agent import build_briefing, parse_cal_event, run_briefing
+from app import app
 from integrations.exa import ResearchHit, research_attendee
+
+
+def _cal_sign(body: bytes, secret: str) -> str:
+    return hmac.new(secret.encode(), body, hashlib.sha256).hexdigest()
 
 
 def test_research_attendee_parses(monkeypatch):
@@ -43,6 +53,48 @@ def test_build_briefing_dry_run(monkeypatch):
     )
     assert result.dry_run is True
     assert "Jane" in result.briefing
+
+
+def test_cal_webhook_rejects_bad_signature(monkeypatch):
+    monkeypatch.setenv("WEBHOOK_VERIFY", "1")
+    monkeypatch.setenv("CAL_WEBHOOK_SECRET", "test-secret")
+    client = TestClient(app)
+    body = json.dumps({"attendees": [{"name": "X", "email": "x@y.com"}]}).encode()
+    resp = client.post(
+        "/webhook/cal",
+        content=body,
+        headers={"X-Cal-Signature-256": "deadbeef"},
+    )
+    assert resp.status_code == 401
+
+
+def test_cal_webhook_503_when_secret_unbound(monkeypatch):
+    monkeypatch.setenv("WEBHOOK_VERIFY", "1")
+    monkeypatch.delenv("CAL_WEBHOOK_SECRET", raising=False)
+    monkeypatch.delenv("DEPLOY_SMOKE", raising=False)
+    monkeypatch.setenv("ALLOW_LOCAL_SECRETS", "0")
+    client = TestClient(app)
+    resp = client.post("/webhook/cal", content=b"{}")
+    assert resp.status_code == 503
+
+
+def test_cal_webhook_accepts_valid_signature(monkeypatch):
+    monkeypatch.setenv("WEBHOOK_VERIFY", "1")
+    monkeypatch.setenv("CAL_WEBHOOK_SECRET", "test-secret")
+
+    def fake_research(name, company, email, *, client=None):
+        return [ResearchHit(url="https://x.com", title="Hit", snippet="Snippet")]
+
+    monkeypatch.setattr("agent.research_attendee", fake_research)
+    client = TestClient(app)
+    body = json.dumps({"attendees": [{"name": "Jane", "email": "j@x.com", "organization": "Acme"}]}).encode()
+    resp = client.post(
+        "/webhook/cal?dry_run=1",
+        content=body,
+        headers={"X-Cal-Signature-256": _cal_sign(body, "test-secret")},
+    )
+    assert resp.status_code == 200
+    assert resp.json()["dry_run"] is True
 
 
 def test_run_briefing_dry_run(monkeypatch, tmp_path):

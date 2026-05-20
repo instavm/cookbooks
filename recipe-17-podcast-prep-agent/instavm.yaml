@@ -45,8 +45,19 @@ egress:
   allowed_domains:
   - api.cartesia.ai
   allow_package_managers: true
-secrets: []
+secrets:
+- name: OpenAI
+  prompt: OpenAI API key (for chat completions)
+  env_name: OPENAI_API_KEY
+- name: Anthropic
+  prompt: Anthropic API key (for Claude completions)
+  env_name: ANTHROPIC_API_KEY
+- name: Cartesia
+  prompt: Cartesia API key (TTS)
+  env_name: CARTESIA_API_KEY
+- name: Mailtrap
+  prompt: Mailtrap SMTP API token
+  env_name: MAILTRAP_API_TOKEN
 post_deploy_notes:
-- "Run `instavm vault setup .` \u2014 upstream keys are vault placeholders injected\
-  \ at egress (OPENAI_KEY, EXA_KEY, etc.)."
+- "Run `instavm vault setup .` \u2014 upstream keys are vault placeholders injected at egress (OPENAI_KEY, EXA_KEY, etc.)."
 - POST /transcript?dry_run=1; set with_tts=true to exercise Cartesia stub.

@@ -3,8 +3,7 @@ kind: service
 slug: recipe-03-pre-meeting-briefing
 title: Pre-Meeting Briefing
 version: 0.1.0
-summary: Cal.com webhook triggers Exa research and markdown investor briefings on
-  InstaVM.
+summary: Cal.com webhook triggers Exa research and markdown investor briefings on InstaVM.
 category: agents
 runtime: python-fastapi
 deploy:
@@ -46,10 +45,24 @@ egress:
   allowed_domains:
   - api.exa.ai
   allow_package_managers: true
-secrets: []
+secrets:
+- name: OpenAI
+  prompt: OpenAI API key (for chat completions)
+  env_name: OPENAI_API_KEY
+- name: Anthropic
+  prompt: Anthropic API key (for Claude completions)
+  env_name: ANTHROPIC_API_KEY
+- name: Exa
+  prompt: Exa API key (for web search)
+  env_name: EXA_API_KEY
+- name: Mailtrap
+  prompt: Mailtrap SMTP API token
+  env_name: MAILTRAP_API_TOKEN
+- name: Cal.com Webhook Secret
+  prompt: HMAC secret configured on the Cal.com webhook (for X-Cal-Signature-256 verification)
+  env_name: CAL_WEBHOOK_SECRET
 post_deploy_notes:
-- "Run `instavm vault setup .` \u2014 upstream keys are vault placeholders injected\
-  \ at egress (OPENAI_KEY, EXA_KEY, etc.)."
+- "Run `instavm vault setup .` \u2014 upstream keys are vault placeholders injected at egress (OPENAI_KEY, EXA_KEY, etc.)."
 - Run instavm vault setup . on first deploy to bind Exa + OpenAI/Anthropic.
 - Point Cal.com webhook to POST /webhook/cal on the share URL.
 - POST /run?dry_run=1 uses a sample attendee for smoke testing.

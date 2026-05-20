@@ -38,10 +38,16 @@ egress:
   allowed_domains:
   - api.stripe.com
   allow_package_managers: true
-secrets: []
+secrets:
+- name: Mailtrap
+  prompt: Mailtrap SMTP API token
+  env_name: MAILTRAP_API_TOKEN
+- name: Stripe
+  prompt: Stripe restricted API key
+  env_name: STRIPE_KEY
 post_deploy_notes:
 - Run `instavm vault setup .` to bind api.stripe.com (STRIPE_KEY).
-- Open share URL → GET /health, then GET / for the HTML dashboard.
+- "Open share URL \u2192 GET /health, then GET / for the HTML dashboard."
 - Set STRIPE_MOCK=1 via --env for offline demo data.
 vault:
   required: true

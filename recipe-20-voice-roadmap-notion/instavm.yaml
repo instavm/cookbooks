@@ -45,7 +45,19 @@ egress:
   allowed_domains:
   - api.notion.com
   allow_package_managers: true
-secrets: []
+secrets:
+- name: OpenAI
+  prompt: OpenAI API key (for chat completions)
+  env_name: OPENAI_API_KEY
+- name: Anthropic
+  prompt: Anthropic API key (for Claude completions)
+  env_name: ANTHROPIC_API_KEY
+- name: Mailtrap
+  prompt: Mailtrap SMTP API token
+  env_name: MAILTRAP_API_TOKEN
+- name: Notion
+  prompt: Notion integration token
+  env_name: NOTION_TOKEN
 post_deploy_notes:
-- Run `instavm vault setup .` — bind api.notion.com, api.openai.com.
+- "Run `instavm vault setup .` \u2014 bind api.notion.com, api.openai.com."
 - GET /health, POST /webhook/transcript?dry_run=1

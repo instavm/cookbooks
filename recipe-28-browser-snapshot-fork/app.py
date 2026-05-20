@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import os
 
 from fastapi import FastAPI, HTTPException
@@ -12,6 +13,7 @@ from lib.config import DEFAULT_TASKS, PARALLEL_CHILDREN
 from lib.secrets import secret_available
 
 app = FastAPI(title="Browser Snapshot Fork")
+_log = logging.getLogger(__name__)
 
 
 class ForkRequest(BaseModel):
@@ -48,8 +50,9 @@ async def fork(body: ForkRequest | None = None) -> ForkResponse:
             tasks=payload.tasks[:PARALLEL_CHILDREN],
             snapshot_id=payload.snapshot_id,
         )
-    except Exception as exc:  # noqa: BLE001
-        raise HTTPException(status_code=502, detail=str(exc)) from exc
+    except Exception:
+        _log.exception("request failed")
+        raise HTTPException(status_code=502, detail="upstream error")
     return ForkResponse(
         children=[
             ChildEcho(task=c.task, stdout=c.stdout, exit_code=c.exit_code) for c in result.children

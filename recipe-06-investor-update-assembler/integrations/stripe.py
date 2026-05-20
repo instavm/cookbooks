@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 
 import httpx
 
-from lib.secrets import mock_enabled, vault_credential
+from lib.secrets import mock_enabled, vault_credential, vault_credential_strict
 
 STRIPE_API = "https://api.stripe.com/v1"
 
@@ -39,7 +39,7 @@ def fetch_stripe_metrics(*, client: httpx.Client | None = None) -> StripeMetrics
     if mock_enabled("STRIPE_TEST_MODE") or mock_enabled("STRIPE_MOCK"):
         return _mock_metrics()
 
-    key = vault_credential("STRIPE_KEY")
+    key = vault_credential_strict("STRIPE_KEY")
     http = client or httpx.Client(timeout=30.0)
     month_start = datetime.now(timezone.utc).replace(day=1, hour=0, minute=0, second=0, microsecond=0)
     headers = {"Authorization": f"Bearer {key}"}

@@ -7,7 +7,7 @@ from typing import Any
 import httpx
 
 from lib.config import NOTION_DATABASE_ID
-from lib.secrets import mock_enabled, vault_credential
+from lib.secrets import mock_enabled, vault_credential, vault_credential_strict
 
 NOTION_PAGES = "https://api.notion.com/v1/pages"
 
@@ -35,7 +35,7 @@ def append_roadmap_items(
             dry_run=False,
         )
 
-    token = vault_credential("NOTION_TOKEN") or os.environ.get("NOTION_TOKEN", "")
+    token = vault_credential_strict("NOTION_TOKEN") or os.environ.get("NOTION_TOKEN", "")
     http = client or httpx.Client(timeout=30.0)
     page_ids: list[str] = []
     for item in items:

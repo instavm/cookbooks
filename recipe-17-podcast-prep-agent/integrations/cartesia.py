@@ -7,7 +7,7 @@ from dataclasses import dataclass
 
 import httpx
 
-from lib.secrets import mock_enabled, vault_credential
+from lib.secrets import mock_enabled, vault_credential, vault_credential_strict
 
 CARTESIA_URL = "https://api.cartesia.ai/tts/bytes"
 
@@ -25,7 +25,7 @@ def synthesize_intro(script: str, *, client: httpx.Client | None = None) -> TTSR
         payload = f"[cartesia-stub] {script[:200]}".encode()
         return TTSResult(audio_bytes=payload, content_type="text/plain", stub=True)
 
-    key = vault_credential("CARTESIA_API_KEY")
+    key = vault_credential_strict("CARTESIA_API_KEY")
     if not key or key == "CARTESIA_KEY":
         payload = f"[cartesia-stub] {script[:200]}".encode()
         return TTSResult(audio_bytes=payload, content_type="text/plain", stub=True)

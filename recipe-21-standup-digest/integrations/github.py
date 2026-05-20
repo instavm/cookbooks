@@ -7,7 +7,7 @@ from datetime import date, timedelta
 import httpx
 
 from lib.config import GITHUB_REPO
-from lib.secrets import mock_enabled, vault_credential
+from lib.secrets import mock_enabled, vault_credential, vault_credential_strict
 
 GITHUB_COMMITS = "https://api.github.com/repos/{repo}/commits"
 
@@ -32,7 +32,7 @@ def fetch_recent_commits(*, since_days: int = 1, client: httpx.Client | None = N
 
     since = (date.today() - timedelta(days=since_days)).isoformat()
     http = client or httpx.Client(timeout=20.0)
-    token = vault_credential("GITHUB_TOKEN") or os.environ.get("GITHUB_TOKEN", "")
+    token = vault_credential_strict("GITHUB_TOKEN") or os.environ.get("GITHUB_TOKEN", "")
     resp = http.get(
         GITHUB_COMMITS.format(repo=GITHUB_REPO),
         params={"since": f"{since}T00:00:00Z", "per_page": 20},

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import os
 
 from fastapi import FastAPI, HTTPException
@@ -11,6 +12,7 @@ import agent
 from lib.config import DIGEST_TO
 
 app = FastAPI(title="ABM Daily Monitor")
+_log = logging.getLogger(__name__)
 
 
 class AccountsRequest(BaseModel):
@@ -44,8 +46,9 @@ def set_accounts(body: AccountsRequest) -> dict[str, object]:
 def run(dry_run: bool = False) -> MonitorResponse:
     try:
         result = agent.run_monitor(dry_run=dry_run)
-    except Exception as exc:  # noqa: BLE001
-        raise HTTPException(status_code=502, detail=str(exc)) from exc
+    except Exception:
+        _log.exception("request failed")
+        raise HTTPException(status_code=502, detail="upstream error")
     return MonitorResponse(
         accounts_checked=result.accounts_checked,
         new_signal=result.new_signal,

@@ -7,7 +7,7 @@ from datetime import datetime, timedelta, timezone
 import httpx
 
 from lib.config import GITHUB_REPO
-from lib.secrets import mock_enabled, vault_credential
+from lib.secrets import mock_enabled, vault_credential, vault_credential_strict
 
 
 GITHUB_API = "https://api.github.com"
@@ -32,7 +32,7 @@ def fetch_github_metrics(*, client: httpx.Client | None = None) -> GitHubMetrics
     if mock_enabled("GITHUB_MOCK"):
         return GitHubMetrics(commits_this_month=42, prs_merged_this_month=8)
 
-    token = vault_credential("GITHUB_TOKEN")
+    token = vault_credential_strict("GITHUB_TOKEN")
     repo = os.environ.get("GITHUB_REPO", GITHUB_REPO)
     since = _month_start_iso()
 

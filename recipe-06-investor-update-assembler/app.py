@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import os
 
 from fastapi import FastAPI, HTTPException
@@ -13,6 +14,7 @@ from agent import load_kpi_history
 from lib.config import GITHUB_REPO
 
 app = FastAPI(title="Investor Update Assembler")
+_log = logging.getLogger(__name__)
 
 
 class RunResponse(BaseModel):
@@ -40,8 +42,9 @@ def health() -> dict[str, str]:
 def run(dry_run: bool = False) -> RunResponse:
     try:
         result = agent.run_assemble(dry_run=dry_run)
-    except Exception as exc:  # noqa: BLE001
-        raise HTTPException(status_code=502, detail=str(exc)) from exc
+    except Exception:
+        _log.exception("request failed")
+        raise HTTPException(status_code=502, detail="upstream error")
     return RunResponse(
         month=result.month,
         mrr_usd=result.mrr_usd,

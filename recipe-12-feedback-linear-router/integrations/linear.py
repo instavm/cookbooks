@@ -5,7 +5,7 @@ from dataclasses import dataclass
 import httpx
 
 from lib.config import LINEAR_TEAM_ID
-from lib.secrets import mock_enabled, vault_credential
+from lib.secrets import mock_enabled, vault_credential, vault_credential_strict
 
 LINEAR_API = "https://api.linear.app/graphql"
 
@@ -27,7 +27,7 @@ def create_issue(
     if mock_enabled("LINEAR_TEST_MODE") or mock_enabled("LINEAR_MOCK"):
         return LinearIssue(id="mock-issue-1", title=title, url="https://linear.app/mock/issue-1")
 
-    key = vault_credential("LINEAR_API_KEY")
+    key = vault_credential_strict("LINEAR_API_KEY")
     http = client or httpx.Client(timeout=30.0)
     mutation = """
     mutation IssueCreate($input: IssueCreateInput!) {

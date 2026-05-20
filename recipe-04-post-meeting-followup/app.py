@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import os
 from typing import Any
 
@@ -12,6 +13,7 @@ import agent
 from lib.config import SAMPLE_TRANSCRIPT
 
 app = FastAPI(title="Post-Meeting Follow-up")
+_log = logging.getLogger(__name__)
 
 
 class RunResponse(BaseModel):
@@ -51,8 +53,9 @@ def health() -> dict[str, str]:
 def run(dry_run: bool = False) -> RunResponse:
     try:
         result = agent.run_followup(SAMPLE_TRANSCRIPT, dry_run=dry_run)
-    except Exception as exc:  # noqa: BLE001
-        raise HTTPException(status_code=502, detail=str(exc)) from exc
+    except Exception:
+        _log.exception("request failed")
+        raise HTTPException(status_code=502, detail="upstream error")
     return RunResponse(
         fetched=result.fetched,
         new=result.new,
@@ -67,8 +70,9 @@ def run(dry_run: bool = False) -> RunResponse:
 def webhook_transcript(payload: TranscriptPayload, dry_run: bool = False) -> FollowupResponse:
     try:
         result = agent.process_transcript(payload.model_dump(), dry_run=dry_run)
-    except Exception as exc:  # noqa: BLE001
-        raise HTTPException(status_code=502, detail=str(exc)) from exc
+    except Exception:
+        _log.exception("request failed")
+        raise HTTPException(status_code=502, detail="upstream error")
     return FollowupResponse(
         subject=result.subject,
         body=result.body,

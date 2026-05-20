@@ -5,7 +5,7 @@ from dataclasses import dataclass
 
 import httpx
 
-from lib.secrets import mock_enabled, vault_credential
+from lib.secrets import mock_enabled, vault_credential, vault_credential_strict
 
 EXA_SEARCH_URL = "https://api.exa.ai/search"
 
@@ -33,7 +33,7 @@ def research_attendee(
             )
         ]
     http = client or httpx.Client(timeout=30.0)
-    key = vault_credential("EXA_API_KEY")
+    key = vault_credential_strict("EXA_API_KEY")
     domain = email.split("@")[1] if "@" in email else ""
     queries = [
         f"{name} {company} investor founder",

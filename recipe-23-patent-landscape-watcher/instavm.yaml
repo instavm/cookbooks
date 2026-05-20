@@ -48,7 +48,22 @@ egress:
   - api.firecrawl.dev
   - sandbox.smtp.mailtrap.io
   allow_package_managers: true
-secrets: []
+secrets:
+- name: OpenAI
+  prompt: OpenAI API key (for chat completions)
+  env_name: OPENAI_API_KEY
+- name: Anthropic
+  prompt: Anthropic API key (for Claude completions)
+  env_name: ANTHROPIC_API_KEY
+- name: Exa
+  prompt: Exa API key (for web search)
+  env_name: EXA_API_KEY
+- name: Firecrawl
+  prompt: Firecrawl API key (for site scraping)
+  env_name: FIRECRAWL_API_KEY
+- name: Mailtrap
+  prompt: Mailtrap SMTP API token
+  env_name: MAILTRAP_API_TOKEN
 post_deploy_notes:
-- Run `instavm vault setup .` — bind api.exa.ai, api.firecrawl.dev, api.openai.com.
+- "Run `instavm vault setup .` \u2014 bind api.exa.ai, api.firecrawl.dev, api.openai.com."
 - GET /health, POST /run?dry_run=1

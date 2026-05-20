@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import logging
+
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import HTMLResponse, JSONResponse
 
@@ -8,6 +10,7 @@ from lib.dashboard import render_dashboard
 from lib.secrets import mock_enabled
 
 app = FastAPI(title="Stripe Revenue Dashboard")
+_log = logging.getLogger(__name__)
 
 
 @app.get("/health")
@@ -22,8 +25,9 @@ def health() -> dict[str, str]:
 def _load_kpis():
     try:
         return fetch_revenue_kpis()
-    except Exception as exc:  # noqa: BLE001
-        raise HTTPException(status_code=502, detail=str(exc)) from exc
+    except Exception:
+        _log.exception("request failed")
+        raise HTTPException(status_code=502, detail="upstream error")
 
 
 @app.get("/", response_class=HTMLResponse)

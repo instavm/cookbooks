@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import os
 
 from fastapi import FastAPI, HTTPException
@@ -11,6 +12,7 @@ import agent
 from lib.config import SLACK_CHANNEL
 
 app = FastAPI(title="Weekly Account Health")
+_log = logging.getLogger(__name__)
 
 
 class RunResponse(BaseModel):
@@ -36,8 +38,9 @@ def health() -> dict[str, str]:
 def run(dry_run: bool = False) -> RunResponse:
     try:
         result = agent.run_health_digest(dry_run=dry_run)
-    except Exception as exc:  # noqa: BLE001
-        raise HTTPException(status_code=502, detail=str(exc)) from exc
+    except Exception:
+        _log.exception("request failed")
+        raise HTTPException(status_code=502, detail="upstream error")
     return RunResponse(
         mrr=result.mrr,
         delta_mrr=result.delta_mrr,

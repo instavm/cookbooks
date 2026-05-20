@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import os
 
 from fastapi import FastAPI, HTTPException
@@ -10,6 +11,7 @@ from pydantic import BaseModel, HttpUrl
 import agent
 
 app = FastAPI(title="Substack Distribution")
+_log = logging.getLogger(__name__)
 
 
 class PublishRequest(BaseModel):
@@ -38,8 +40,9 @@ def health() -> dict[str, str]:
 def publish(body: PublishRequest, dry_run: bool = False) -> PublishResponse:
     try:
         result = agent.run_publish(str(body.url), dry_run=dry_run)
-    except Exception as exc:  # noqa: BLE001
-        raise HTTPException(status_code=502, detail=str(exc)) from exc
+    except Exception:
+        _log.exception("request failed")
+        raise HTTPException(status_code=502, detail="upstream error")
     return PublishResponse(
         url=result.url,
         title=result.title,

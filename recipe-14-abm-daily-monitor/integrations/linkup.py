@@ -7,7 +7,7 @@ from dataclasses import dataclass
 
 import httpx
 
-from lib.secrets import mock_enabled, vault_credential
+from lib.secrets import mock_enabled, vault_credential, vault_credential_strict
 
 LINKUP_URL = "https://api.linkup.so/v1/search"
 
@@ -28,7 +28,7 @@ def fetch_account_news(domain: str, *, client: httpx.Client | None = None) -> Ac
     if mock_enabled("LINKUP_MOCK") or mock_enabled("LINKUP_TEST_MODE"):
         return _mock_news(domain)
 
-    key = vault_credential("LINKUP_API_KEY")
+    key = vault_credential_strict("LINKUP_API_KEY")
     owns_client = client is None
     http = client or httpx.Client(timeout=30.0)
     try:

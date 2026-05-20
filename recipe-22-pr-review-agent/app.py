@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 import json
+import logging
 import os
-from typing import Any
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import HTMLResponse
@@ -10,11 +10,10 @@ from lib.ui import landing_page
 from pydantic import BaseModel
 
 import agent
-from lib.config import sample_pr_path
-from lib.secrets import vault_credential
-from lib.webhooks import verify_github_signature, webhook_verify_enabled
+from lib.webhooks import enforce_github_signature
 
 app = FastAPI(title="PR Review Agent")
+_log = logging.getLogger(__name__)
 
 
 class ReviewResponse(BaseModel):
@@ -37,18 +36,16 @@ def health() -> dict[str, str]:
 @app.post("/webhook/github", response_model=ReviewResponse)
 async def webhook_github(request: Request, dry_run: bool = False) -> ReviewResponse:
     body_bytes = await request.body()
-    if webhook_verify_enabled() and not dry_run:
-        secret = vault_credential("GITHUB_WEBHOOK_SECRET")
-        if secret and secret != "GITHUB_WEBHOOK_SECRET":
-            sig = request.headers.get("X-Hub-Signature-256")
-            if not verify_github_signature(body_bytes, sig, secret):
-                raise HTTPException(status_code=401, detail="Invalid GitHub signature")
+    enforce_github_signature(body_bytes, request.headers.get("X-Hub-Signature-256"))
 
     try:
         payload = json.loads(body_bytes)
         result = agent.review_pr(payload, dry_run=dry_run)
-    except Exception as exc:  # noqa: BLE001
-        raise HTTPException(status_code=502, detail=str(exc)) from exc
+    except HTTPException:
+        raise
+    except Exception:
+        _log.exception("webhook_github failed")
+        raise HTTPException(status_code=502, detail="upstream error")
     return ReviewResponse(
         pr_number=result.pr_number,
         title=result.title,

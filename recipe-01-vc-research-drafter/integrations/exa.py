@@ -5,7 +5,7 @@ from dataclasses import dataclass
 
 import httpx
 
-from lib.secrets import mock_enabled, vault_credential
+from lib.secrets import mock_enabled, vault_credential, vault_credential_strict
 
 EXA_SEARCH_URL = "https://api.exa.ai/search"
 
@@ -32,7 +32,7 @@ def search_vcs(
             )
         ]
     http = client or httpx.Client(timeout=30.0)
-    key = vault_credential("EXA_API_KEY")
+    key = vault_credential_strict("EXA_API_KEY")
     resp = http.post(
         EXA_SEARCH_URL,
         headers={"x-api-key": key, "Content-Type": "application/json"},

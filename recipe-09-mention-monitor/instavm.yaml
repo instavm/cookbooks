@@ -3,8 +3,7 @@ kind: service
 slug: recipe-09-mention-monitor
 title: Mention Monitor
 version: 0.1.0
-summary: Poll HN Algolia and Reddit RSS for brand mentions, LLM-score relevance, alert
-  via Slack webhook.
+summary: Poll HN Algolia and Reddit RSS for brand mentions, LLM-score relevance, alert via Slack webhook.
 category: agents
 runtime: python-fastapi
 deploy:
@@ -47,7 +46,19 @@ egress:
   - www.reddit.com
   - hooks.slack.com
   allow_package_managers: true
-secrets: []
+secrets:
+- name: OpenAI
+  prompt: OpenAI API key (for chat completions)
+  env_name: OPENAI_API_KEY
+- name: Anthropic
+  prompt: Anthropic API key (for Claude completions)
+  env_name: ANTHROPIC_API_KEY
+- name: Mailtrap
+  prompt: Mailtrap SMTP API token
+  env_name: MAILTRAP_API_TOKEN
+- name: Slack webhook URL
+  prompt: Slack incoming webhook URL
+  env_name: SLACK_WEBHOOK_URL
 post_deploy_notes:
-- Run `instavm vault setup .` — bind api.openai.com, hooks.slack.com.
+- "Run `instavm vault setup .` \u2014 bind api.openai.com, hooks.slack.com."
 - GET /health, POST /run?dry_run=1

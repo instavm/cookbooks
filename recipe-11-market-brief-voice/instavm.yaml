@@ -3,8 +3,7 @@ kind: service
 slug: recipe-11-market-brief-voice
 title: Market Brief Voice
 version: 0.1.0
-summary: Daily Linkup market news, LLM spoken script, Cartesia TTS stub, MP3 on persistent
-  volume.
+summary: Daily Linkup market news, LLM spoken script, Cartesia TTS stub, MP3 on persistent volume.
 category: agents
 runtime: python-fastapi
 deploy:
@@ -48,7 +47,22 @@ egress:
   - api.linkup.so
   - api.cartesia.ai
   allow_package_managers: true
-secrets: []
+secrets:
+- name: OpenAI
+  prompt: OpenAI API key (for chat completions)
+  env_name: OPENAI_API_KEY
+- name: Anthropic
+  prompt: Anthropic API key (for Claude completions)
+  env_name: ANTHROPIC_API_KEY
+- name: Cartesia
+  prompt: Cartesia API key (TTS)
+  env_name: CARTESIA_API_KEY
+- name: Linkup
+  prompt: Linkup API key
+  env_name: LINKUP_API_KEY
+- name: Mailtrap
+  prompt: Mailtrap SMTP API token
+  env_name: MAILTRAP_API_TOKEN
 post_deploy_notes:
-- Run `instavm vault setup .` — bind api.linkup.so, api.cartesia.ai, api.openai.com.
+- "Run `instavm vault setup .` \u2014 bind api.linkup.so, api.cartesia.ai, api.openai.com."
 - GET /health, POST /run?dry_run=1, GET /audio/latest

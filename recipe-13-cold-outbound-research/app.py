@@ -9,6 +9,7 @@ import agent
 from lib.config import DIGEST_TO
 
 app = FastAPI(title="Cold Outbound Research")
+_log = logging.getLogger(__name__)
 
 
 class ProspectRequest(BaseModel):
@@ -48,8 +49,9 @@ def prospect(body: ProspectRequest, dry_run: bool = False) -> ProspectResponse:
             domain=body.domain,
             dry_run=dry_run,
         )
-    except Exception as exc:  # noqa: BLE001
-        raise HTTPException(status_code=502, detail=str(exc)) from exc
+    except Exception:
+        _log.exception("request failed")
+        raise HTTPException(status_code=502, detail="upstream error")
     return ProspectResponse(
         company=result.company,
         email=result.email,

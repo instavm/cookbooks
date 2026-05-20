@@ -3,8 +3,7 @@ kind: service
 slug: recipe-07-substack-distribution
 title: Substack Distribution
 version: 0.1.0
-summary: Scrape Substack posts with Firecrawl, rewrite for LinkedIn and X, stage HTML
-  preview before publish.
+summary: Scrape Substack posts with Firecrawl, rewrite for LinkedIn and X, stage HTML preview before publish.
 category: agents
 runtime: python-fastapi
 deploy:
@@ -46,7 +45,19 @@ egress:
   allowed_domains:
   - api.firecrawl.dev
   allow_package_managers: true
-secrets: []
+secrets:
+- name: OpenAI
+  prompt: OpenAI API key (for chat completions)
+  env_name: OPENAI_API_KEY
+- name: Anthropic
+  prompt: Anthropic API key (for Claude completions)
+  env_name: ANTHROPIC_API_KEY
+- name: Firecrawl
+  prompt: Firecrawl API key (for site scraping)
+  env_name: FIRECRAWL_API_KEY
+- name: Mailtrap
+  prompt: Mailtrap SMTP API token
+  env_name: MAILTRAP_API_TOKEN
 post_deploy_notes:
-- Run `instavm vault setup .` — bind api.firecrawl.dev, api.openai.com.
+- "Run `instavm vault setup .` \u2014 bind api.firecrawl.dev, api.openai.com."
 - GET /health, POST /publish?dry_run=1, GET /preview

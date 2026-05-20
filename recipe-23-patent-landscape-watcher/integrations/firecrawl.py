@@ -6,7 +6,7 @@ from dataclasses import dataclass
 import httpx
 
 from lib.config import PATENT_QUERY
-from lib.secrets import mock_enabled, vault_credential
+from lib.secrets import mock_enabled, vault_credential, vault_credential_strict
 
 FIRECRAWL_SEARCH = "https://api.firecrawl.dev/v1/search"
 
@@ -36,7 +36,7 @@ def search_competitors(query: str, *, limit: int = 10, client: httpx.Client | No
         return _mock_hits()[:limit]
 
     http = client or httpx.Client(timeout=30.0)
-    key = vault_credential("FIRECRAWL_API_KEY") or os.environ.get("FIRECRAWL_API_KEY", "")
+    key = vault_credential_strict("FIRECRAWL_API_KEY") or os.environ.get("FIRECRAWL_API_KEY", "")
     resp = http.post(
         FIRECRAWL_SEARCH,
         headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},

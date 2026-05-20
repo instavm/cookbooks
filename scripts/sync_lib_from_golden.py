@@ -3,7 +3,6 @@
 
 from __future__ import annotations
 
-import shutil
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -40,7 +39,7 @@ class LLMClient:
         raise NotImplementedError("This recipe does not call an LLM")
 '''
 
-SYNC_FILES = ("secrets.py", "mail.py")
+SYNC_FILES = ("secrets.py", "mail.py", "webhooks.py")
 
 
 def main() -> None:
@@ -51,16 +50,27 @@ def main() -> None:
         for name in SYNC_FILES:
             src = GOLDEN / name
             dst = lib_dir / name
-            if src.is_file() and src.resolve() != dst.resolve():
-                shutil.copy2(src, dst)
-                print(f"sync {slug}/lib/{name}")
+            if not src.is_file() or src.resolve() == dst.resolve():
+                continue
+            src_bytes = src.read_bytes()
+            if dst.is_file() and dst.read_bytes() == src_bytes:
+                continue
+            dst.write_bytes(src_bytes)
+            print(f"sync {slug}/lib/{name}")
         llm_dst = lib_dir / "llm.py"
         if slug in LLM_STUB_RECIPES:
-            if llm_dst.read_text(encoding="utf-8") != LLM_STUB if llm_dst.is_file() else True:
+            current = llm_dst.read_text(encoding="utf-8") if llm_dst.is_file() else ""
+            if current != LLM_STUB:
                 llm_dst.write_text(LLM_STUB, encoding="utf-8")
                 print(f"stub {slug}/lib/llm.py")
-        elif not llm_dst.is_file():
-            shutil.copy2(GOLDEN / "llm.py", llm_dst)
+        else:
+            src = GOLDEN / "llm.py"
+            if src.resolve() == llm_dst.resolve():
+                continue
+            src_bytes = src.read_bytes()
+            if llm_dst.is_file() and llm_dst.read_bytes() == src_bytes:
+                continue
+            llm_dst.write_bytes(src_bytes)
             print(f"sync {slug}/lib/llm.py")
 
 

@@ -7,7 +7,7 @@ from dataclasses import dataclass
 
 import httpx
 
-from lib.secrets import mock_enabled, vault_credential
+from lib.secrets import mock_enabled, vault_credential, vault_credential_strict
 
 EXA_SEARCH_URL = "https://api.exa.ai/search"
 
@@ -35,7 +35,7 @@ def research_company(
             )
         ]
     query = f"{company} {domain} recent news 2026".strip()
-    key = vault_credential("EXA_API_KEY")
+    key = vault_credential_strict("EXA_API_KEY")
     owns_client = client is None
     http = client or httpx.Client(timeout=30.0)
     try:
