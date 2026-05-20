@@ -35,7 +35,7 @@ def synthesize_intro(script: str, *, client: httpx.Client | None = None) -> TTSR
     try:
         resp = http.post(
             CARTESIA_URL,
-            headers={"Authorization": f"Bearer {key}", "Cartesia-Version": "2024-06-10"},
+            headers={"Authorization": f"Bearer {key}", "Cartesia-Version": "2025-04-16"},
             json={
                 "model_id": os.environ.get("CARTESIA_MODEL", "sonic-english"),
                 "transcript": script[:500],

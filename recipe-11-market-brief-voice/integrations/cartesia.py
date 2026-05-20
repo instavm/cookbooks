@@ -26,7 +26,7 @@ def synthesize(script: str, *, client: httpx.Client | None = None) -> TTSResult:
     http = client or httpx.Client(timeout=120.0)
     resp = http.post(
         CARTESIA_API,
-        headers={"Authorization": f"Bearer {key}", "Cartesia-Version": "2024-06-10"},
+        headers={"Authorization": f"Bearer {key}", "Cartesia-Version": "2025-04-16"},
         json={
             "model_id": "sonic-2",
             "transcript": script,
