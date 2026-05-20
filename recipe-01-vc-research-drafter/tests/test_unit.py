@@ -1,6 +1,6 @@
 from pathlib import Path
-
-import httpx
+from types import SimpleNamespace
+from unittest.mock import MagicMock
 
 from agent import run_draft
 from integrations.exa import VCResult, search_vcs
@@ -10,26 +10,22 @@ from lib.store import JsonStore
 def test_search_vcs_parses(monkeypatch):
     monkeypatch.setenv("EXA_MOCK", "0")
     monkeypatch.setenv("EXA_API_KEY", "test-key")
+    monkeypatch.delenv("DEPLOY_SMOKE", raising=False)
 
-    def handler(request: httpx.Request) -> httpx.Response:
-        return httpx.Response(
-            200,
-            json={
-                "results": [
-                    {
-                        "url": "https://example.com/vc",
-                        "title": "Acme Ventures",
-                        "text": "Seed stage AI investor",
-                    }
-                ]
-            },
-        )
-
-    transport = httpx.MockTransport(handler)
-    client = httpx.Client(transport=transport)
-    vcs = search_vcs("AI infra", client=client)
+    fake_exa = MagicMock()
+    fake_exa.search_and_contents.return_value = SimpleNamespace(
+        results=[
+            SimpleNamespace(
+                url="https://example.com/vc",
+                title="Acme Ventures",
+                text="Seed stage AI investor",
+            )
+        ]
+    )
+    vcs = search_vcs("AI infra", exa=fake_exa)
     assert len(vcs) == 1
     assert vcs[0].url == "https://example.com/vc"
+    fake_exa.search_and_contents.assert_called_once()
 
 
 def test_store_dedup(tmp_path: Path):
@@ -44,7 +40,7 @@ def test_store_dedup(tmp_path: Path):
 def test_run_draft_dry_run(tmp_path, monkeypatch):
     monkeypatch.setenv("DATA_DIR", str(tmp_path))
 
-    def fake_search(thesis, *, limit=20, client=None):
+    def fake_search(thesis, *, limit=20, exa=None):
         return [VCResult(url="https://vc.com", title="VC Fund", snippet="AI seed")]
 
     monkeypatch.setattr("agent.search_vcs", fake_search)

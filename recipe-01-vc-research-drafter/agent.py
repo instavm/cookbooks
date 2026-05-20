@@ -36,7 +36,7 @@ class RunResult:
 
 def run_draft(*, dry_run: bool = False, llm: LLMClient | None = None, http: httpx.Client | None = None) -> RunResult:
     store = JsonStore(contacted_path())
-    vcs = search_vcs(VC_THESIS, limit=MAX_VCS, client=http)
+    vcs = search_vcs(VC_THESIS, limit=MAX_VCS)
     new_vcs = [v for v in vcs if not store.seen(v.url)]
 
     if not new_vcs:

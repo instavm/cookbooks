@@ -53,7 +53,7 @@ def research_and_email(
             dry_run=dry_run,
         )
 
-    hits = research_company(company, domain=domain, client=http)
+    hits = research_company(company, domain=domain)
     if dry_run:
         subject = f"Quick thought on {company}"
         body = f"Hi {name},\n\nDry run — LLM skipped. Found {len(hits)} research hits."

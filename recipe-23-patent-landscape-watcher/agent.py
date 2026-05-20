@@ -31,7 +31,7 @@ class RunResult:
 
 def run_watch(*, dry_run: bool = False, llm: LLMClient | None = None, http: httpx.Client | None = None) -> RunResult:
     store = JsonStore(seen_path())
-    patents = search_patents(PATENT_QUERY, client=http)
+    patents = search_patents(PATENT_QUERY)
     competitors = search_competitors(PATENT_QUERY, client=http)
     combined: list[PatentHit | CompetitorHit] = [*patents, *competitors]
     new_hits = [h for h in combined if not store.seen(h.id)]

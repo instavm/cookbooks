@@ -1,13 +1,10 @@
 from __future__ import annotations
 
-import os
 from dataclasses import dataclass
 
-import httpx
+from exa_py import Exa
 
-from lib.secrets import mock_enabled, vault_credential, vault_credential_strict
-
-EXA_SEARCH_URL = "https://api.exa.ai/search"
+from lib.secrets import mock_enabled, vault_credential_strict
 
 
 @dataclass
@@ -22,7 +19,7 @@ def research_attendee(
     company: str,
     email: str,
     *,
-    client: httpx.Client | None = None,
+    exa: Exa | None = None,
 ) -> list[ResearchHit]:
     if mock_enabled("EXA_MOCK"):
         return [
@@ -32,8 +29,7 @@ def research_attendee(
                 snippet=f"Mock research context for {name} at {company}.",
             )
         ]
-    http = client or httpx.Client(timeout=30.0)
-    key = vault_credential_strict("EXA_API_KEY")
+    client = exa or Exa(api_key=vault_credential_strict("EXA_API_KEY"))
     domain = email.split("@")[1] if "@" in email else ""
     queries = [
         f"{name} {company} investor founder",
@@ -42,23 +38,18 @@ def research_attendee(
     ]
     hits: list[ResearchHit] = []
     for query in queries:
-        resp = http.post(
-            EXA_SEARCH_URL,
-            headers={"x-api-key": key, "Content-Type": "application/json"},
-            json={
-                "query": query,
-                "numResults": 5,
-                "type": "neural",
-                "contents": {"text": {"maxCharacters": 600}},
-            },
+        response = client.search_and_contents(
+            query,
+            num_results=5,
+            type="neural",
+            text={"max_characters": 600},
         )
-        resp.raise_for_status()
-        for item in resp.json().get("results", []):
-            text = str(item.get("text") or "")
+        for item in response.results:
+            text = getattr(item, "text", "") or ""
             hits.append(
                 ResearchHit(
-                    url=str(item.get("url") or ""),
-                    title=str(item.get("title") or "Untitled"),
+                    url=getattr(item, "url", "") or "",
+                    title=getattr(item, "title", None) or "Untitled",
                     snippet=text[:300],
                 )
             )

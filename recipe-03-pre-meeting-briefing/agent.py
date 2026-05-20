@@ -62,7 +62,6 @@ def build_briefing(
         meeting["attendee_name"],
         meeting["company"],
         meeting["attendee_email"],
-        client=http,
     )
 
     if dry_run:

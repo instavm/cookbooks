@@ -1,8 +1,9 @@
 import hashlib
 import hmac
 import json
+from types import SimpleNamespace
+from unittest.mock import MagicMock
 
-import httpx
 from fastapi.testclient import TestClient
 
 from agent import build_briefing, parse_cal_event, run_briefing
@@ -17,16 +18,13 @@ def _cal_sign(body: bytes, secret: str) -> str:
 def test_research_attendee_parses(monkeypatch):
     monkeypatch.setenv("EXA_MOCK", "0")
     monkeypatch.setenv("EXA_API_KEY", "test-key")
+    monkeypatch.delenv("DEPLOY_SMOKE", raising=False)
 
-    def handler(request: httpx.Request) -> httpx.Response:
-        return httpx.Response(
-            200,
-            json={"results": [{"url": "https://x.com", "title": "News", "text": "Raised seed"}]},
-        )
-
-    transport = httpx.MockTransport(handler)
-    client = httpx.Client(transport=transport)
-    hits = research_attendee("Jane", "Acme", "jane@acme.vc", client=client)
+    fake_exa = MagicMock()
+    fake_exa.search_and_contents.return_value = SimpleNamespace(
+        results=[SimpleNamespace(url="https://x.com", title="News", text="Raised seed")]
+    )
+    hits = research_attendee("Jane", "Acme", "jane@acme.vc", exa=fake_exa)
     assert len(hits) >= 1
     assert hits[0].url == "https://x.com"
 
@@ -43,7 +41,7 @@ def test_parse_cal_event():
 
 
 def test_build_briefing_dry_run(monkeypatch):
-    def fake_research(name, company, email, *, client=None):
+    def fake_research(name, company, email, *, exa=None):
         return [ResearchHit(url="https://x.com", title="Hit", snippet="Snippet")]
 
     monkeypatch.setattr("agent.research_attendee", fake_research)
@@ -82,7 +80,7 @@ def test_cal_webhook_accepts_valid_signature(monkeypatch):
     monkeypatch.setenv("WEBHOOK_VERIFY", "1")
     monkeypatch.setenv("CAL_WEBHOOK_SECRET", "test-secret")
 
-    def fake_research(name, company, email, *, client=None):
+    def fake_research(name, company, email, *, exa=None):
         return [ResearchHit(url="https://x.com", title="Hit", snippet="Snippet")]
 
     monkeypatch.setattr("agent.research_attendee", fake_research)
@@ -100,7 +98,7 @@ def test_cal_webhook_accepts_valid_signature(monkeypatch):
 def test_run_briefing_dry_run(monkeypatch, tmp_path):
     monkeypatch.setenv("DATA_DIR", str(tmp_path))
 
-    def fake_research(name, company, email, *, client=None):
+    def fake_research(name, company, email, *, exa=None):
         return [ResearchHit(url="https://x.com", title="Hit", snippet="Snippet")]
 
     monkeypatch.setattr("agent.research_attendee", fake_research)
