@@ -1,15 +1,12 @@
-"""Exa company research — HTTP client with mock-friendly transport."""
+"""Exa company research via the official exa-py SDK."""
 
 from __future__ import annotations
 
-import os
 from dataclasses import dataclass
 
-import httpx
+from exa_py import Exa
 
-from lib.secrets import mock_enabled, vault_credential, vault_credential_strict
-
-EXA_SEARCH_URL = "https://api.exa.ai/search"
+from lib.secrets import mock_enabled, vault_credential_strict
 
 
 @dataclass(frozen=True)
@@ -24,7 +21,7 @@ def research_company(
     *,
     domain: str = "",
     num_results: int = 3,
-    client: httpx.Client | None = None,
+    exa: Exa | None = None,
 ) -> list[ExaHit]:
     if mock_enabled("EXA_MOCK"):
         return [
@@ -35,31 +32,21 @@ def research_company(
             )
         ]
     query = f"{company} {domain} recent news 2026".strip()
-    key = vault_credential_strict("EXA_API_KEY")
-    owns_client = client is None
-    http = client or httpx.Client(timeout=30.0)
-    try:
-        resp = http.post(
-            EXA_SEARCH_URL,
-            headers={"x-api-key": key, "Content-Type": "application/json"},
-            json={
-                "query": query,
-                "numResults": num_results,
-                "useAutoprompt": True,
-                "contents": {"text": {"maxCharacters": 400}},
-            },
-        )
-        resp.raise_for_status()
-        hits: list[ExaHit] = []
-        for row in resp.json().get("results") or []:
-            hits.append(
-                ExaHit(
-                    title=str(row.get("title") or ""),
-                    url=str(row.get("url") or ""),
-                    snippet=str((row.get("text") or "")[:400]),
-                )
+    client = exa or Exa(api_key=vault_credential_strict("EXA_API_KEY"))
+    response = client.search_and_contents(
+        query,
+        num_results=num_results,
+        use_autoprompt=True,
+        text={"max_characters": 400},
+    )
+    hits: list[ExaHit] = []
+    for row in response.results:
+        text = getattr(row, "text", "") or ""
+        hits.append(
+            ExaHit(
+                title=getattr(row, "title", None) or "",
+                url=getattr(row, "url", "") or "",
+                snippet=text[:400],
             )
-        return hits
-    finally:
-        if owns_client:
-            http.close()
+        )
+    return hits

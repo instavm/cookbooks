@@ -8,7 +8,7 @@ import httpx
 from lib.config import PATENT_QUERY
 from lib.secrets import mock_enabled, vault_credential, vault_credential_strict
 
-FIRECRAWL_SEARCH = "https://api.firecrawl.dev/v1/search"
+FIRECRAWL_SEARCH = "https://api.firecrawl.dev/v2/search"
 
 
 @dataclass

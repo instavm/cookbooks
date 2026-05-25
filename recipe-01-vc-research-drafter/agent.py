@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 import httpx
+from exa_py import Exa
 
 from integrations.exa import VCResult, search_vcs
 from lib.config import (
@@ -34,9 +35,15 @@ class RunResult:
     dry_run: bool
 
 
-def run_draft(*, dry_run: bool = False, llm: LLMClient | None = None, http: httpx.Client | None = None) -> RunResult:
+def run_draft(
+    *,
+    dry_run: bool = False,
+    llm: LLMClient | None = None,
+    http: httpx.Client | None = None,
+    exa: Exa | None = None,
+) -> RunResult:
     store = JsonStore(contacted_path())
-    vcs = search_vcs(VC_THESIS, limit=MAX_VCS, client=http)
+    vcs = search_vcs(VC_THESIS, limit=MAX_VCS, exa=exa)
     new_vcs = [v for v in vcs if not store.seen(v.url)]
 
     if not new_vcs:

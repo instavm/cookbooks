@@ -1,13 +1,10 @@
 from __future__ import annotations
 
-import os
 from dataclasses import dataclass
 
-import httpx
+from exa_py import Exa
 
-from lib.secrets import mock_enabled, vault_credential, vault_credential_strict
-
-EXA_SEARCH_URL = "https://api.exa.ai/search"
+from lib.secrets import mock_enabled, vault_credential_strict
 
 
 @dataclass
@@ -21,7 +18,7 @@ def search_vcs(
     thesis: str,
     *,
     limit: int = 20,
-    client: httpx.Client | None = None,
+    exa: Exa | None = None,
 ) -> list[VCResult]:
     if mock_enabled("EXA_MOCK"):
         return [
@@ -31,26 +28,20 @@ def search_vcs(
                 snippet=f"Mock VC matching thesis: {thesis}",
             )
         ]
-    http = client or httpx.Client(timeout=30.0)
-    key = vault_credential_strict("EXA_API_KEY")
-    resp = http.post(
-        EXA_SEARCH_URL,
-        headers={"x-api-key": key, "Content-Type": "application/json"},
-        json={
-            "query": f"venture capital investor {thesis} seed pre-seed portfolio",
-            "numResults": limit,
-            "type": "neural",
-            "contents": {"text": {"maxCharacters": 800}},
-        },
+    client = exa or Exa(api_key=vault_credential_strict("EXA_API_KEY"))
+    response = client.search_and_contents(
+        f"venture capital investor {thesis} seed pre-seed portfolio",
+        num_results=limit,
+        type="neural",
+        text={"max_characters": 800},
     )
-    resp.raise_for_status()
     results: list[VCResult] = []
-    for hit in resp.json().get("results", []):
-        text = str(hit.get("text") or "")
+    for hit in response.results:
+        text = getattr(hit, "text", "") or ""
         results.append(
             VCResult(
-                url=str(hit.get("url") or ""),
-                title=str(hit.get("title") or "Untitled"),
+                url=getattr(hit, "url", "") or "",
+                title=getattr(hit, "title", None) or "Untitled",
                 snippet=text[:400],
             )
         )

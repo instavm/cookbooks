@@ -7,7 +7,7 @@ import httpx
 
 from lib.secrets import mock_enabled, vault_credential, vault_credential_strict
 
-FIRECRAWL_API = "https://api.firecrawl.dev/v1/scrape"
+FIRECRAWL_API = "https://api.firecrawl.dev/v2/scrape"
 
 
 @dataclass

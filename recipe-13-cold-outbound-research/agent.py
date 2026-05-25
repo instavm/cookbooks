@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from typing import Any
 
 import httpx
+from exa_py import Exa
 
 from integrations.exa import ExaHit, research_company
 from lib.config import DIGEST_TO, emailed_path
@@ -39,6 +40,7 @@ def research_and_email(
     dry_run: bool = False,
     llm: LLMClient | None = None,
     http: httpx.Client | None = None,
+    exa: Exa | None = None,
 ) -> ProspectResult:
     store = JsonStore(emailed_path())
     if store.seen(email):
@@ -53,7 +55,7 @@ def research_and_email(
             dry_run=dry_run,
         )
 
-    hits = research_company(company, domain=domain, client=http)
+    hits = research_company(company, domain=domain, exa=exa)
     if dry_run:
         subject = f"Quick thought on {company}"
         body = f"Hi {name},\n\nDry run — LLM skipped. Found {len(hits)} research hits."

@@ -1,14 +1,11 @@
 from __future__ import annotations
 
-import os
 from dataclasses import dataclass
 
-import httpx
+from exa_py import Exa
 
 from lib.config import PATENT_QUERY
-from lib.secrets import mock_enabled, vault_credential, vault_credential_strict
-
-EXA_SEARCH = "https://api.exa.ai/search"
+from lib.secrets import mock_enabled, vault_credential_strict
 
 
 @dataclass
@@ -37,26 +34,26 @@ def _mock_hits() -> list[PatentHit]:
     ]
 
 
-def search_patents(query: str, *, limit: int = 10, client: httpx.Client | None = None) -> list[PatentHit]:
+def search_patents(query: str, *, limit: int = 10, exa: Exa | None = None) -> list[PatentHit]:
     if mock_enabled("EXA_MOCK"):
         return _mock_hits()[:limit]
 
-    http = client or httpx.Client(timeout=30.0)
-    key = vault_credential_strict("EXA_API_KEY")
-    resp = http.post(
-        EXA_SEARCH,
-        headers={"x-api-key": key, "Content-Type": "application/json"},
-        json={"query": query or PATENT_QUERY, "numResults": limit, "type": "auto"},
+    client = exa or Exa(api_key=vault_credential_strict("EXA_API_KEY"))
+    response = client.search_and_contents(
+        query or PATENT_QUERY,
+        num_results=limit,
+        type="auto",
     )
-    resp.raise_for_status()
     hits: list[PatentHit] = []
-    for row in resp.json().get("results", []):
+    for row in response.results:
+        url = getattr(row, "url", "") or ""
+        text = getattr(row, "text", "") or ""
         hits.append(
             PatentHit(
-                id=str(row.get("id") or row.get("url", "")),
-                title=str(row.get("title") or "Untitled"),
-                url=str(row.get("url") or ""),
-                snippet=str(row.get("text") or row.get("snippet") or "")[:300],
+                id=str(getattr(row, "id", None) or url),
+                title=getattr(row, "title", None) or "Untitled",
+                url=url,
+                snippet=text[:300],
             )
         )
     return hits

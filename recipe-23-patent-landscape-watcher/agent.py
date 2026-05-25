@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from typing import Any
 
 import httpx
+from exa_py import Exa
 
 from integrations.exa import PatentHit, search_patents
 from integrations.firecrawl import CompetitorHit, search_competitors
@@ -29,9 +30,15 @@ class RunResult:
     dry_run: bool
 
 
-def run_watch(*, dry_run: bool = False, llm: LLMClient | None = None, http: httpx.Client | None = None) -> RunResult:
+def run_watch(
+    *,
+    dry_run: bool = False,
+    llm: LLMClient | None = None,
+    http: httpx.Client | None = None,
+    exa: Exa | None = None,
+) -> RunResult:
     store = JsonStore(seen_path())
-    patents = search_patents(PATENT_QUERY, client=http)
+    patents = search_patents(PATENT_QUERY, exa=exa)
     competitors = search_competitors(PATENT_QUERY, client=http)
     combined: list[PatentHit | CompetitorHit] = [*patents, *competitors]
     new_hits = [h for h in combined if not store.seen(h.id)]

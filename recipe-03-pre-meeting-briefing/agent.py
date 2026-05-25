@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any
 
 import httpx
+from exa_py import Exa
 
 from integrations.exa import ResearchHit, research_attendee
 from lib.config import briefings_dir
@@ -56,13 +57,14 @@ def build_briefing(
     dry_run: bool = False,
     llm: LLMClient | None = None,
     http: httpx.Client | None = None,
+    exa: Exa | None = None,
 ) -> BriefingResult:
     meeting = parse_cal_event(event)
     research = research_attendee(
         meeting["attendee_name"],
         meeting["company"],
         meeting["attendee_email"],
-        client=http,
+        exa=exa,
     )
 
     if dry_run:
@@ -102,11 +104,12 @@ def run_briefing(
     dry_run: bool = False,
     llm: LLMClient | None = None,
     http: httpx.Client | None = None,
+    exa: Exa | None = None,
 ) -> RunResult:
     from lib.config import SAMPLE_ATTENDEE
 
     payload = event or SAMPLE_ATTENDEE
-    result = build_briefing(payload, dry_run=dry_run, llm=llm, http=http)
+    result = build_briefing(payload, dry_run=dry_run, llm=llm, http=http, exa=exa)
     return RunResult(
         fetched=result.research_count,
         new=1,

@@ -43,7 +43,7 @@ def append_roadmap_items(
             NOTION_PAGES,
             headers={
                 "Authorization": f"Bearer {token}",
-                "Notion-Version": "2022-06-28",
+                "Notion-Version": "2026-03-11",
                 "Content-Type": "application/json",
             },
             json={
