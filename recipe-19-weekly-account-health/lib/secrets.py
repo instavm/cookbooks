@@ -1,4 +1,4 @@
-"""Credentials — InstaVM vault placeholders in production, local files for dev/tests only."""
+"""Credentials. InstaVM vault placeholders in production, local files for dev/tests only."""
 
 from __future__ import annotations
 
@@ -28,11 +28,11 @@ VAULT_PLACEHOLDERS: dict[str, str] = {
     "INSTAVM_API_KEY": "INSTAVM_KEY",
 }
 
-_DEFAULT_SERVICES = Path.home() / "Documents" / "projects" / ".services"
+_DEFAULT_SERVICES = Path.home() / ".instavm" / "secrets"
 _DEFAULT_KNOWN: dict[str, Path] = {
-    "OPENAI_API_KEY": Path.home() / "Documents" / "projects" / ".openai",
-    "ANTHROPIC_API_KEY": Path.home() / "Documents" / "projects" / ".anthropic",
-    "MAILTRAP_API_TOKEN": Path.home() / "Documents" / "projects" / ".mailtrap",
+    "OPENAI_API_KEY": _DEFAULT_SERVICES / "openai",
+    "ANTHROPIC_API_KEY": _DEFAULT_SERVICES / "anthropic",
+    "MAILTRAP_API_TOKEN": _DEFAULT_SERVICES / "mailtrap",
 }
 
 
@@ -57,7 +57,7 @@ def mock_enabled(flag: str) -> bool:
 
 
 def load_secret(name: str, default: str = "") -> str:
-    """Read real credentials from local files — dev/CI only, never required on InstaVM."""
+    """Read real credentials from local files. Dev and CI only, never required on InstaVM."""
     if not allow_local_secrets():
         return default
     services = _services_dir()
@@ -71,7 +71,11 @@ def load_secret(name: str, default: str = "") -> str:
 
 
 def vault_credential(name: str, *, placeholder: str | None = None) -> str:
-    """Env override, else local dev file, else vault placeholder for egress injection."""
+    """Env override, else local dev file, else vault placeholder for egress injection.
+
+    Local fallback reads from ~/.instavm/secrets/<NAME> (override with
+    INSTAVM_LOCAL_SECRETS_DIR) and only when ALLOW_LOCAL_SECRETS=1.
+    """
     ph = placeholder or VAULT_PLACEHOLDERS.get(name, name)
     env_val = (os.environ.get(name) or "").strip()
     if env_val:

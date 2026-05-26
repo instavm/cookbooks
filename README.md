@@ -14,6 +14,23 @@ Each cookbook lives at the repo root:
 python3 scripts/validate_manifests.py
 ```
 
+## Contributor setup
+
+Install [pre-commit](https://pre-commit.com/) once to wire the credential scan, manifest validation, and shared-lib drift gate into every local commit:
+
+```bash
+pip install pre-commit
+pre-commit install
+```
+
+Hooks run automatically on `git commit`. Run against the whole tree on demand:
+
+```bash
+pre-commit run --all-files
+```
+
+CI mirrors these gates: `scripts/scan_secrets.sh` and `scripts/validate_manifests.py` run on every push and pull request via `.github/workflows/validate.yml`.
+
 ## 27 Production AI Agent Recipes
 
 Standalone InstaVM recipe cookbooks numbered `recipe-01-…` through `recipe-31-…` (slots #10 and #27 are filled by the two pre-existing cookbooks [`deep-research-exa`](deep-research-exa/) and [`vscode-microvm`](vscode-microvm/) and are not listed in the tables below). Each directory is **copy-deployable** with `instavm deploy .` (YAML v2). Every recipe includes unit + smoke tests under `tests/`.
@@ -42,7 +59,7 @@ instavm vault setup .
 instavm deploy .
 ```
 
-Local dev/tests load real keys from `~/Documents/projects/.services/` or env when `ALLOW_LOCAL_SECRETS=1` (default). Set `EXA_MOCK=1`, `STRIPE_MOCK=1`, etc. for offline runs.
+Local dev/tests load real keys from `~/.instavm/secrets/` (override with `INSTAVM_LOCAL_SECRETS_DIR`) or env when `ALLOW_LOCAL_SECRETS=1`. Set `EXA_MOCK=1`, `STRIPE_MOCK=1`, etc. for offline runs.
 
 Apply vault pattern to all recipes: `python3 scripts/apply_vault_pattern.py`
 

@@ -48,6 +48,9 @@ async def _run_echo_child(
         opts = options.model_copy(update={"snapshot_id": snapshot_id})
     session = await client.create(manifest=Manifest(), options=opts)
     try:
+        # Shell interpolation is safe here only because this runs inside a
+        # disposable child sandbox with allow_internet_access=False. Outside the
+        # sandbox, build subprocess argv as a list and treat `task` as untrusted.
         result = await session.exec("sh", "-c", f"echo sandbox:{task}")
         stdout = (getattr(result, "stdout", None) or "").strip()
         exit_code = int(getattr(result, "exit_code", 0) or 0)

@@ -38,3 +38,15 @@ instavm deploy .
 ```
 
 See the [InstaVM cookbook](https://instavm.io) recipe 28 for the full browser-use + volume snapshot workflow; this repo ships a minimal fork demo.
+
+## Security note on the shell exec inside child sandboxes
+
+`lib/sandbox_fork.py` runs:
+
+```python
+result = await session.exec("sh", "-c", f"echo sandbox:{task}")
+```
+
+That f-string interpolates the caller-supplied `task` into a shell command. **This is safe here, and only here**, because it runs inside a freshly spawned InstaVM child sandbox with `allow_internet_access=False` and a one-shot lifecycle. The blast radius is the disposable child VM; the parent process and host machine are unreachable.
+
+Do not lift this pattern into code that runs outside the sandbox. If you adapt this recipe and start passing `task` to a subprocess on the orchestrator host, use a list argv form (`subprocess.run(["echo", "sandbox:" + task])`) and treat the input as untrusted. Shell interpolation outside the sandbox is a remote-code-execution vector.
