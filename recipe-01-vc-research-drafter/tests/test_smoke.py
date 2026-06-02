@@ -19,7 +19,7 @@ def test_run_dry_run(client, monkeypatch):
     monkeypatch.setenv("DATA_DIR", "/tmp/vc-test")
     monkeypatch.setenv("MAIL_DRY_RUN", "1")
 
-    def fake_search(thesis, *, limit=20, client=None):
+    def fake_search(thesis, *, limit=20, exa=None):
         from integrations.exa import VCResult
 
         return [VCResult(url="https://vc.com", title="Test VC", snippet="Seed AI")]
