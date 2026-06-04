@@ -14,6 +14,97 @@ Each cookbook lives at the repo root:
 python3 scripts/validate_manifests.py
 ```
 
+## Contributor setup
+
+Install [pre-commit](https://pre-commit.com/) once to wire the credential scan, manifest validation, and shared-lib drift gate into every local commit:
+
+```bash
+pip install pre-commit
+pre-commit install
+```
+
+Hooks run automatically on `git commit`. Run against the whole tree on demand:
+
+```bash
+pre-commit run --all-files
+```
+
+CI mirrors these gates: `scripts/scan_secrets.sh` and `scripts/validate_manifests.py` run on every push and pull request via `.github/workflows/validate.yml`.
+
+## 27 Production AI Agent Recipes
+
+Standalone InstaVM recipe cookbooks numbered `recipe-01-…` through `recipe-31-…` (slots #10 and #27 are filled by the two pre-existing cookbooks [`deep-research-exa`](deep-research-exa/) and [`vscode-microvm`](vscode-microvm/) and are not listed in the tables below). Each directory is **copy-deployable** with `instavm deploy .` (YAML v2). Every recipe includes unit + smoke tests under `tests/`.
+
+```bash
+cd recipe-08-hn-signal-scanner
+instavm vault setup .
+instavm deploy --plan .
+instavm deploy .
+pytest tests/test_unit.py tests/test_smoke.py
+```
+
+Run all recipe tests locally:
+
+```bash
+bash scripts/run_recipe_tests.sh
+```
+
+### Vault and credentials
+
+Recipes use **InstaVM org vault** egress injection — the VM never receives real API keys. Code sends placeholder strings (`OPENAI_KEY`, `EXA_KEY`, `STRIPE_KEY`, etc.); the platform substitutes credentials on outbound HTTPS.
+
+```bash
+cd recipe-08-hn-signal-scanner
+instavm vault setup .
+instavm deploy .
+```
+
+Local dev/tests load real keys from `~/.instavm/secrets/` (override with `INSTAVM_LOCAL_SECRETS_DIR`) or env when `ALLOW_LOCAL_SECRETS=1`. Set `EXA_MOCK=1`, `STRIPE_MOCK=1`, etc. for offline runs.
+
+Apply vault pattern to all recipes: `python3 scripts/apply_vault_pattern.py`
+
+### Founder Daily Pack
+
+| # | Slug | Summary |
+|---|------|---------|
+| 01 | [`recipe-01-vc-research-drafter`](recipe-01-vc-research-drafter/) | Exa VC search → warm-intro email drafts |
+| 02 | [`recipe-02-competitor-launch-watcher`](recipe-02-competitor-launch-watcher/) | Competitor page diff + LLM launch summary |
+| 03 | [`recipe-03-pre-meeting-briefing`](recipe-03-pre-meeting-briefing/) | Cal.com webhook → attendee briefing |
+| 04 | [`recipe-04-post-meeting-followup`](recipe-04-post-meeting-followup/) | Transcript → follow-up email draft |
+| 05 | [`recipe-05-investor-crm-updater`](recipe-05-investor-crm-updater/) | Email signals → CRM JSON upserts |
+| 06 | [`recipe-06-investor-update-assembler`](recipe-06-investor-update-assembler/) | Stripe + GitHub → investor update |
+| 07 | [`recipe-07-substack-distribution`](recipe-07-substack-distribution/) | Substack → LinkedIn/X variants |
+| 08 | [`recipe-08-hn-signal-scanner`](recipe-08-hn-signal-scanner/) | HN Algolia digest with LLM filter (**golden template**) |
+| 09 | [`recipe-09-mention-monitor`](recipe-09-mention-monitor/) | Brand mention monitor → Slack |
+| 11 | [`recipe-11-market-brief-voice`](recipe-11-market-brief-voice/) | Market brief script + optional TTS |
+| 12 | [`recipe-12-feedback-linear-router`](recipe-12-feedback-linear-router/) | Slack feedback → Linear issues |
+
+### Wider Operator Pack
+
+| # | Slug | Summary |
+|---|------|---------|
+| 13 | [`recipe-13-cold-outbound-research`](recipe-13-cold-outbound-research/) | Prospect research → outbound email |
+| 14 | [`recipe-14-abm-daily-monitor`](recipe-14-abm-daily-monitor/) | ABM account news diff digest |
+| 15 | [`recipe-15-lost-deal-postmortem`](recipe-15-lost-deal-postmortem/) | Lost-deal transcript post-mortem |
+| 16 | [`recipe-16-seo-blog-pipeline`](recipe-16-seo-blog-pipeline/) | SEO blog draft pipeline |
+| 17 | [`recipe-17-podcast-prep-agent`](recipe-17-podcast-prep-agent/) | Podcast transcript → show notes |
+| 18 | [`recipe-18-churn-risk-warning`](recipe-18-churn-risk-warning/) | Churn risk scoring + alerts |
+| 19 | [`recipe-19-weekly-account-health`](recipe-19-weekly-account-health/) | Weekly Stripe health → Slack |
+| 20 | [`recipe-20-voice-roadmap-notion`](recipe-20-voice-roadmap-notion/) | Voice transcript → Notion roadmap |
+| 21 | [`recipe-21-standup-digest`](recipe-21-standup-digest/) | GitHub + Linear standup digest |
+| 22 | [`recipe-22-pr-review-agent`](recipe-22-pr-review-agent/) | GitHub PR review agent |
+| 23 | [`recipe-23-patent-landscape-watcher`](recipe-23-patent-landscape-watcher/) | Patent/competitor intel digest |
+| 24 | [`recipe-24-stripe-revenue-dashboard`](recipe-24-stripe-revenue-dashboard/) | Stripe KPI dashboard |
+
+### InstaVM Showcase Pack
+
+| # | Slug | Summary |
+|---|------|---------|
+| 28 | [`recipe-28-browser-snapshot-fork`](recipe-28-browser-snapshot-fork/) | Parallel child sandbox fork demo |
+| 29 | [`recipe-29-computer-use-replay`](recipe-29-computer-use-replay/) | Screenshot gallery replay |
+| 30 | [`recipe-30-mcp-server-hosting`](recipe-30-mcp-server-hosting/) | MCP server hosting stub |
+| 31 | [`recipe-31-deterministic-replay`](recipe-31-deterministic-replay/) | LLM cassette deterministic replay |
+
 ## Included Apps
 
 - [`hello-fastapi`](hello-fastapi/): a simple FastAPI app with a hello page and health endpoint.

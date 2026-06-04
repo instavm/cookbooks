@@ -1,0 +1,20 @@
+[
+  {
+    "customer_id": "cus_acme",
+    "sentiment_score": 0.72,
+    "open_tickets": 1,
+    "last_message": "Love the new dashboard — team is adopting fast."
+  },
+  {
+    "customer_id": "cus_globex",
+    "sentiment_score": -0.41,
+    "open_tickets": 4,
+    "last_message": "Still waiting on SSO fix; considering alternatives."
+  },
+  {
+    "customer_id": "cus_initech",
+    "sentiment_score": -0.18,
+    "open_tickets": 2,
+    "last_message": "Billing contact changed; need updated invoice routing."
+  }
+]
