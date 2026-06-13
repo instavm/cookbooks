@@ -1,0 +1,71 @@
+schema_version: 2
+kind: service
+slug: claude-managed-agents
+title: Claude Managed Agents — Self-Hosted Sandbox
+version: 0.1.0
+summary: >-
+  Self-host the Claude Managed Agents (CMA) sandbox layer on InstaVM. A FastAPI
+  orchestrator receives Anthropic's session.status_run_started webhook and spawns
+  a per-session InstaVM worker microVM that runs `ant beta:worker poll`. Provider
+  credentials are injected at the egress boundary from the InstaVM org vault, so
+  the untrusted agent worker never holds a real API key.
+category: agents
+runtime: python-fastapi
+deploy:
+  kind: upload_and_run
+source:
+  include:
+    - app.py
+    - orchestrator/
+    - lib/
+    - requirements.txt
+    - instavm.yaml
+    - README.md
+  exclude:
+    - tests/
+  setup_command: python -m pip install --no-cache-dir -r requirements.txt
+vm:
+  memory_mb: 1024
+  vcpu_count: 1
+  timeout_seconds: 86400
+app:
+  port: 8000
+  healthcheck_path: /health
+  share_public_default: true
+  readiness_timeout_seconds: 120
+run:
+  workdir: .
+  # ANTHROPIC_WEBHOOK_SIGNING_KEY (whsec_...) verifies inbound webhooks in-process
+  # and is bound as an org-vault credential. The real Anthropic environment key
+  # and any downstream provider keys are NOT placed here — they are injected at
+  # the egress boundary on the worker microVMs (see `vault:` and README).
+  start_command: python -m uvicorn app:app --host 0.0.0.0 --port 8000
+# The org vault must map api.anthropic.com so that worker microVMs get the real
+# Anthropic environment key injected at TLS write time. The orchestrator itself
+# only needs the webhook signing secret bound to verify deliveries.
+vault:
+  required: true
+  hosts:
+    - api.anthropic.com
+egress:
+  mode: allowlist
+  include_vault_hosts: true
+  allowed_domains:
+    - api.anthropic.com
+  allow_package_managers: true
+secrets:
+  - name: AnthropicWebhookSigningKey
+    prompt: Anthropic webhook signing key (whsec_...) from the Console webhook endpoint
+    env_name: ANTHROPIC_WEBHOOK_SIGNING_KEY
+  - name: AnthropicEnvironmentId
+    prompt: Anthropic self-hosted environment id (env_...)
+    env_name: ANTHROPIC_ENVIRONMENT_ID
+  - name: InstavmApiKey
+    prompt: InstaVM API key used to spawn worker microVMs
+    env_name: INSTAVM_API_KEY
+post_deploy_notes:
+  - "Run `instavm vault setup .` and bind api.anthropic.com (auth_type=api_key, header x-api-key, credential ANTHROPIC_KEY) so worker microVMs never receive a naked Anthropic key."
+  - "Open the share URL and GET /health to confirm the orchestrator is live."
+  - "Register the printed `<share-url>/webhook` in the Claude Console (Manage > Webhooks) and subscribe ONLY to session.status_run_started."
+  - "Set ANTHROPIC_ENVIRONMENT_ID via the deploy prompt; the worker injects ANTHROPIC_ENVIRONMENT_KEY at egress from the bound org vault."
+  - "Create a self-hosted agent + session in the Console to trigger the first run; watch GET /workers for spawned worker microVMs."
