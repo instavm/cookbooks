@@ -5,16 +5,16 @@ Self-host the **Claude Managed Agents (CMA)** sandbox execution layer on
 agent makes runs inside an isolated, per-session InstaVM microVM.
 
 The differentiator: **no naked secrets**. The worker microVM — where the
-untrusted agent code executes — never receives a real provider credential. The
-Anthropic environment key (and any third-party API keys the agent needs) are
-injected at the **egress boundary** from the InstaVM **org vault** at TLS write
-time. The VM only ever holds placeholder strings.
+untrusted agent code executes — never receives a real provider credential. Any
+third-party API keys the agent needs (and, optionally, the Anthropic environment
+key itself) are injected at the **egress boundary** from the InstaVM **org vault**
+at TLS write time. The VM only ever holds placeholder strings.
 
-| | E2B | Blaxel | **InstaVM (this cookbook)** |
-|---|---|---|---|
-| Tool execution | Worker sandbox | Worker sandbox | Worker microVM |
-| Provider secret in worker | **Plaintext file** in sandbox | Proxy-injected | **Vault-injected at egress** |
-| Agent sees real key | Yes (on disk) | No | **No** |
+| | Secrets-in-sandbox (typical) | InstaVM (this cookbook) |
+|---|---|---|
+| Tool execution | Worker sandbox | Worker microVM |
+| Provider secret in worker | Env var / file on disk | **Vault-injected at egress** |
+| Agent code can read the key | Yes | **No** |
 
 ## Architecture
 
