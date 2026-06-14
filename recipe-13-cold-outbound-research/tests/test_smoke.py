@@ -19,7 +19,7 @@ def test_prospect_dry_run(client, monkeypatch):
     monkeypatch.setenv("DATA_DIR", "/tmp/cold-outbound-test")
     monkeypatch.setenv("MAIL_DRY_RUN", "1")
 
-    def fake_research(company, *, domain="", num_results=3, client=None):
+    def fake_research(company, *, domain="", num_results=3, exa=None):
         from integrations.exa import ExaHit
 
         return [ExaHit(title="Launch", url="https://example.com", snippet="Big launch")]

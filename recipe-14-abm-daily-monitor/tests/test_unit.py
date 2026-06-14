@@ -7,7 +7,9 @@ from integrations.linkup import AccountNews, fetch_account_news
 from lib.diff_store import FingerprintStore
 
 
-def test_fetch_account_news_parses():
+def test_fetch_account_news_parses(monkeypatch):
+    monkeypatch.setenv("LINKUP_API_KEY", "test-key")
+
     def handler(request: httpx.Request) -> httpx.Response:
         return httpx.Response(200, json={"answer": "Acme launched a new product line."})
 

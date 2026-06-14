@@ -5,7 +5,7 @@ from dataclasses import dataclass
 
 import httpx
 
-from lib.secrets import mock_enabled, vault_credential, vault_credential_strict
+from lib.secrets import VAULT_PLACEHOLDERS, mock_enabled, vault_credential
 
 
 @dataclass
@@ -15,8 +15,11 @@ class SlackResult:
 
 
 def post_slack_message(text: str, *, client: httpx.Client | None = None) -> SlackResult:
-    url = vault_credential_strict("SLACK_WEBHOOK_URL") or os.environ.get("SLACK_WEBHOOK_URL", "")
-    if not url or os.environ.get("SLACK_DRY_RUN", "").lower() in {"1", "true", "yes"}:
+    if os.environ.get("SLACK_DRY_RUN", "").lower() in {"1", "true", "yes"}:
+        return SlackResult(sent=False, dry_run=True)
+    url = vault_credential("SLACK_WEBHOOK_URL") or os.environ.get("SLACK_WEBHOOK_URL", "")
+    placeholder = VAULT_PLACEHOLDERS.get("SLACK_WEBHOOK_URL", "SLACK_WEBHOOK_URL")
+    if not url or url == placeholder:
         return SlackResult(sent=False, dry_run=True)
 
     owns_client = client is None

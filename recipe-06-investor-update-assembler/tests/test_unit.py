@@ -3,7 +3,7 @@ from pathlib import Path
 import httpx
 
 from agent import load_kpi_history, run_assemble, save_kpi_snapshot
-from integrations.github import GitHubMetrics, fetch_github_metrics
+from integrations.github import GitHubMetrics, _month_start_iso, fetch_github_metrics
 from integrations.stripe import StripeMetrics, fetch_stripe_metrics
 
 
@@ -29,7 +29,7 @@ def test_github_parses_commits(monkeypatch):
     def handler(request: httpx.Request) -> httpx.Response:
         if request.url.path.endswith("/commits"):
             return httpx.Response(200, json=[{"sha": "abc"}, {"sha": "def"}])
-        return httpx.Response(200, json=[{"merged_at": "2026-05-01T00:00:00Z"}])
+        return httpx.Response(200, json=[{"merged_at": _month_start_iso()}])
 
     client = httpx.Client(transport=httpx.MockTransport(handler))
     metrics = fetch_github_metrics(client=client)

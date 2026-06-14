@@ -18,7 +18,8 @@ def test_health(client):
     assert resp.json()["ok"] == "true"
 
 
-def test_webhook_github_fixture(client):
+def test_webhook_github_fixture(client, monkeypatch):
+    monkeypatch.setenv("WEBHOOK_VERIFY", "0")
     payload = json.loads(sample_pr_path().read_text(encoding="utf-8"))
     resp = client.post("/webhook/github?dry_run=true", json=payload)
     assert resp.status_code == 200
