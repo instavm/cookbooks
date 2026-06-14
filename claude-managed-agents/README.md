@@ -56,8 +56,10 @@ control plane                                            FastAPI on an InstaVM
 
 ```bash
 # 1. One-time: bind the org vault so workers get the real Anthropic key at egress.
-#    auth_type=api_key, header x-api-key, credential named ANTHROPIC_KEY,
-#    mapped to host api.anthropic.com.
+#    auth_type=bearer, credential named ANTHROPIC_ENV_KEY, mapped to host
+#    api.anthropic.com. The worker sends the environment key as
+#    `Authorization: Bearer`, so the binding must be a bearer credential
+#    (NOT x-api-key — that header is only for the host-side admin API).
 instavm vault setup .
 
 # 2. Deploy the orchestrator. The CLI prompts for the deploy-time secrets

@@ -154,7 +154,7 @@ class WorkerPool:
             allow_package_managers=True,
             allowed_domains=list(config.egress_domains),
         )
-        result = await asyncio.to_thread(client.execute_async, build_worker_command(config))
+        result = await asyncio.to_thread(client.execute_async, build_worker_command(config), "bash")
         info.task_id = _task_id(result)
 
     async def stop(self, session_id: str) -> bool:

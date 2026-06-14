@@ -64,7 +64,7 @@ secrets:
     prompt: InstaVM API key used to spawn worker microVMs
     env_name: INSTAVM_API_KEY
 post_deploy_notes:
-  - "Run `instavm vault setup .` and bind api.anthropic.com (auth_type=api_key, header x-api-key, credential ANTHROPIC_KEY) so worker microVMs never receive a naked Anthropic key."
+  - "Run `instavm vault setup .` and bind api.anthropic.com (auth_type=bearer, credential ANTHROPIC_ENV_KEY) so worker microVMs never receive a naked Anthropic key. The worker sends the environment key as `Authorization: Bearer`."
   - "Open the share URL and GET /health to confirm the orchestrator is live."
   - "Register the printed `<share-url>/webhook` in the Claude Console (Manage > Webhooks) and subscribe ONLY to session.status_run_started."
   - "Set ANTHROPIC_ENVIRONMENT_ID via the deploy prompt; the worker injects ANTHROPIC_ENVIRONMENT_KEY at egress from the bound org vault."

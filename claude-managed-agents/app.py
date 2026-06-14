@@ -68,7 +68,7 @@ def create_app(*, pool: WorkerPool | None = None, dispatcher: Dispatcher | None 
             placeholder = VAULT_PLACEHOLDERS["ANTHROPIC_WEBHOOK_SIGNING_KEY"]
             if "not configured" in str(exc) or signing_key == placeholder:
                 return JSONResponse({"error": str(exc)}, status_code=503)
-            return JSONResponse({"error": str(exc)}, status_code=400)
+            return JSONResponse({"error": str(exc)}, status_code=401)
 
         event_type, session_id = extract_session_event(payload)
         if event_type != TRIGGER_EVENT:

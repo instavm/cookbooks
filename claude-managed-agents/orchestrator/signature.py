@@ -73,26 +73,47 @@ def _verify_standard_webhooks(body: bytes, headers: Mapping[str, str], signing_k
 
 
 def _verify_with_sdk(body: bytes, headers: Mapping[str, str], signing_key: str) -> bool:
-    """Best-effort verification via the Anthropic SDK. Returns True if it ran."""
+    """Best-effort verification via the Anthropic SDK. Returns True if it ran.
+
+    Returns ``False`` (so the caller falls back to the built-in Standard Webhooks
+    verifier) when the SDK or its optional ``anthropic[webhooks]`` extra is not
+    available. Only a genuine signature mismatch raises :class:`WebhookError`.
+    """
     try:
         import anthropic
     except Exception:  # noqa: BLE001 - SDK optional in tests
         return False
-    try:
-        client = anthropic.Anthropic(api_key="not-used", webhook_signing_key=signing_key)
+
+    def _unwrap(key_in_env: bool) -> None:
+        if key_in_env:
+            os.environ["ANTHROPIC_WEBHOOK_SIGNING_KEY"] = signing_key
+            client = anthropic.Anthropic(api_key="not-used")
+        else:
+            client = anthropic.Anthropic(api_key="not-used", webhook_signing_key=signing_key)
         client.beta.webhooks.unwrap(body.decode("utf-8"), headers=dict(headers))
+
+    try:
+        _unwrap(key_in_env=False)
         return True
     except TypeError:
         # Older/newer SDKs read the key from ANTHROPIC_WEBHOOK_SIGNING_KEY.
         try:
-            os.environ["ANTHROPIC_WEBHOOK_SIGNING_KEY"] = signing_key
-            client = anthropic.Anthropic(api_key="not-used")
-            client.beta.webhooks.unwrap(body.decode("utf-8"), headers=dict(headers))
+            _unwrap(key_in_env=True)
             return True
         except Exception as exc:  # noqa: BLE001
+            if _is_missing_webhooks_extra(exc):
+                return False
             raise WebhookError(f"signature verification failed: {exc}") from exc
     except Exception as exc:  # noqa: BLE001
+        if _is_missing_webhooks_extra(exc):
+            return False
         raise WebhookError(f"signature verification failed: {exc}") from exc
+
+
+def _is_missing_webhooks_extra(exc: Exception) -> bool:
+    """True if the SDK couldn't verify because ``anthropic[webhooks]`` is absent."""
+    msg = str(exc).lower()
+    return "anthropic[webhooks]" in msg or "install" in msg and "webhook" in msg
 
 
 def verify_and_parse(body: bytes, headers: Mapping[str, str], signing_key: str) -> dict[str, Any]:
