@@ -16,7 +16,7 @@ def test_health(client):
 
 
 def test_run_dry_run(client, monkeypatch):
-    def fake_research(name, company, email, *, client=None):
+    def fake_research(name, company, email, *, exa=None):
         from integrations.exa import ResearchHit
 
         return [ResearchHit(url="https://x.com", title="News", snippet="Seed round")]
@@ -32,7 +32,9 @@ def test_run_dry_run(client, monkeypatch):
 
 
 def test_webhook_cal_dry_run(client, monkeypatch):
-    def fake_research(name, company, email, *, client=None):
+    monkeypatch.setenv("WEBHOOK_VERIFY", "0")
+
+    def fake_research(name, company, email, *, exa=None):
         from integrations.exa import ResearchHit
 
         return [ResearchHit(url="https://x.com", title="News", snippet="Seed round")]
