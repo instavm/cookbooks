@@ -20,6 +20,7 @@ def test_e2e_offline_happy_path(client, monkeypatch, tmp_path):
     monkeypatch.setenv("DATA_DIR", str(tmp_path))
     monkeypatch.setenv("ALLOW_LOCAL_SECRETS", "0")
     monkeypatch.setenv("MAIL_DRY_RUN", "1")
+    monkeypatch.setenv("EXA_MOCK", "1")
     resp = client.post("/run?dry_run=true")
     assert resp.status_code == 200
     assert resp.json().get("dry_run") is True

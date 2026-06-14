@@ -20,6 +20,7 @@ def test_e2e_offline_happy_path(client, monkeypatch, tmp_path):
     monkeypatch.setenv("DATA_DIR", str(tmp_path))
     monkeypatch.setenv("ALLOW_LOCAL_SECRETS", "0")
     monkeypatch.setenv("MAIL_DRY_RUN", "1")
+    monkeypatch.setenv("WEBHOOK_VERIFY", "0")
     fixture = json.loads((Path(__file__).parent.parent / "fixtures" / "pr_opened.json").read_text())
     resp = client.post("/webhook/github?dry_run=true", json=fixture)
     assert resp.status_code == 200

@@ -1,5 +1,5 @@
+import logging
 import os
-
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import HTMLResponse, JSONResponse
 from lib.ui import landing_page

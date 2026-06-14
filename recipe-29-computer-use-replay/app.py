@@ -22,6 +22,7 @@ def _ensure_frames() -> agent.CaptureResult:
     return _capture
 
 
+FRAMES_DIR.mkdir(parents=True, exist_ok=True)
 app.mount("/frames", StaticFiles(directory=str(FRAMES_DIR)), name="frames")
 
 

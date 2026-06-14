@@ -19,6 +19,7 @@ def test_health(client):
 
 def test_slack_webhook_fixture(client, monkeypatch, tmp_path):
     monkeypatch.setenv("DATA_DIR", str(tmp_path))
+    monkeypatch.setenv("WEBHOOK_VERIFY", "0")
     fixture = json.loads(
         (Path(__file__).resolve().parents[1] / "fixtures" / "slack_event.json").read_text()
     )
