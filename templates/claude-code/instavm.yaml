@@ -1,0 +1,39 @@
+schema_version: 2
+kind: devbox
+slug: claude-code
+name: Claude Code
+version: "0.1.0"
+description: Run Claude Code in an empty workspace with an optional Anthropic API key.
+audience: coding-agent
+icon: icon.svg
+source_repo: anthropics/claude-code
+vm:
+  memory_mb: 2048
+  vcpus: 2
+build:
+  - name: Install Claude Code
+    command: "mkdir -p /root/.local/bin && curl -fsSL https://claude.ai/install.sh | bash"
+  - name: Add local bin to PATH
+    command: grep -qxF 'export PATH="/root/.local/bin:$PATH"' /root/.bashrc || echo 'export PATH="/root/.local/bin:$PATH"' >> /root/.bashrc
+  - name: Create workspace
+    command: mkdir -p /root/workspace
+runtime:
+  - kind: stage_secret
+    name: Stage optional Anthropic key
+    optional: true
+    secrets:
+      - name: Anthropic API key
+        env_name: ANTHROPIC_API_KEY
+        optional: true
+terminal:
+  tmux_session: claude
+  command: claude
+  cwd: /root/workspace
+app: null
+egress:
+  allow_domains:
+    - api.anthropic.com
+    - claude.ai
+    - downloads.claude.ai
+    - statsig.anthropic.com
+    - sentry.io

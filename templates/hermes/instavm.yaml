@@ -1,0 +1,45 @@
+schema_version: 2
+kind: devbox
+slug: hermes
+name: Hermes
+version: "0.1.0"
+description: Run Hermes chat in an empty workspace with an optional OpenAI API key.
+audience: chat-agent
+icon: icon.svg
+source_repo: nousresearch/hermes-agent
+vm:
+  memory_mb: 2048
+  vcpus: 2
+build:
+  - name: Install Hermes system dependencies
+    command: apt-get update -y && apt-get install -y --no-install-recommends ripgrep ffmpeg python3-dev libffi-dev gcc tini git curl ca-certificates
+  - name: Install uv
+    command: python3 -m pip install --user --break-system-packages uv || python3 -m pip install --user uv
+  - name: Clone Hermes
+    command: git clone --depth=1 --branch main https://github.com/nousresearch/hermes-agent.git /root/hermes-agent
+  - name: Install Hermes CLI extras
+    command: cd /root/hermes-agent && /root/.local/bin/uv sync --extra messaging --extra cli && /root/.local/bin/uv pip install --no-cache-dir --no-deps -e .
+  - name: Create workspace
+    command: mkdir -p /root/workspace
+runtime:
+  - kind: stage_secret
+    name: Stage optional OpenAI key
+    optional: true
+    secrets:
+      - name: OpenAI API key
+        env_name: OPENAI_API_KEY
+        optional: true
+terminal:
+  tmux_session: hermes
+  command: /root/hermes-agent/.venv/bin/hermes chat
+  cwd: /root/workspace
+app: null
+egress:
+  allow_domains:
+    - api.openai.com
+    - github.com
+    - objects.githubusercontent.com
+    - pypi.org
+    - files.pythonhosted.org
+    - deb.debian.org
+    - security.debian.org

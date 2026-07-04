@@ -1,0 +1,43 @@
+# NOTE: license review before badge PR
+schema_version: 2
+kind: devbox
+slug: open-webui
+name: Open WebUI
+version: "0.1.0"
+description: Run Open WebUI in a browser workspace with optional OpenAI or OpenRouter keys.
+audience: chat-agent
+icon: icon.svg
+source_repo: open-webui/open-webui
+vm:
+  memory_mb: 4096
+  vcpus: 2
+build:
+  - name: Install Open WebUI
+    command: pip install open-webui
+  - name: Create workspace
+    command: mkdir -p /root/workspace
+runtime:
+  - kind: stage_secret
+    name: Stage optional provider keys
+    optional: true
+    secrets:
+      - name: OpenAI API key
+        env_name: OPENAI_API_KEY
+        optional: true
+      - name: OpenRouter API key
+        env_name: OPENROUTER_API_KEY
+        optional: true
+terminal:
+  tmux_session: open-webui
+  command: open-webui serve --port 8080
+  cwd: /root/workspace
+app:
+  port: 8080
+  health_path: "/health"
+  share: public
+egress:
+  allow_domains:
+    - api.openai.com
+    - openrouter.ai
+    - pypi.org
+    - files.pythonhosted.org

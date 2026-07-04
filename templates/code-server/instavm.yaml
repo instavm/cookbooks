@@ -1,0 +1,37 @@
+schema_version: 2
+kind: devbox
+slug: code-server
+name: code-server
+version: "0.1.0"
+description: Run code-server in a browser workspace with optional password auth.
+audience: devbox
+icon: icon.svg
+source_repo: coder/code-server
+vm:
+  memory_mb: 4096
+  vcpus: 2
+build:
+  - name: Install code-server
+    command: "curl -fsSL https://code-server.dev/install.sh | sh"
+  - name: Create workspace
+    command: mkdir -p /root/workspace
+runtime:
+  - kind: stage_secret
+    name: Stage optional password
+    optional: true
+    secrets:
+      - name: code-server password
+        env_name: PASSWORD
+        optional: true
+terminal:
+  tmux_session: code-server
+  command: code-server --bind-addr 0.0.0.0:8080 /root/workspace
+  cwd: /root/workspace
+app:
+  port: 8080
+  health_path: "/healthz"
+  share: public
+  query: "?folder=/root/workspace"
+egress:
+  allow_domains:
+    - "*"
