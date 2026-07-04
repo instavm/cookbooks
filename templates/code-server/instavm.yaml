@@ -11,8 +11,10 @@ vm:
   memory_mb: 4096
   vcpus: 2
 build:
-  - name: Install code-server
-    command: "curl -fsSL https://code-server.dev/install.sh | sh"
+  # Pinned release tarball instead of curl|sh: deterministic version, no
+  # arbitrary remote script execution. Bump the version in both URL segments.
+  - name: Install code-server from pinned release tarball
+    command: "curl -fsSL --retry 3 https://github.com/coder/code-server/releases/download/v4.127.0/code-server-4.127.0-linux-amd64.tar.gz -o /root/code-server.tar.gz && mkdir -p /opt/code-server && tar -xzf /root/code-server.tar.gz -C /opt/code-server --strip-components=1 && ln -sf /opt/code-server/bin/code-server /usr/local/bin/code-server && rm -f /root/code-server.tar.gz"
   - name: Create workspace
     command: mkdir -p /root/workspace
 runtime:
@@ -32,7 +34,9 @@ app:
   health_path: "/healthz"
   share: public
   query: "?folder=/root/workspace"
+# Open egress on purpose: a general-purpose IDE needs to reach arbitrary git
+# hosts, package registries, and the extension marketplace. All other
+# templates pin specific domains; narrow this list if your workspace allows it.
 egress:
   allow_domains:
-    # Controller decision: a general-purpose IDE devbox is the deliberate exception.
     - "*"

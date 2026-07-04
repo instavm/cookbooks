@@ -36,7 +36,6 @@ DEVBOX_REQUIRED_TOP_LEVEL = {
     "build",
     "runtime",
     "terminal",
-    "app",
     "egress",
 }
 SUPPORTED_SCHEMA_VERSIONS = {1, 2}
@@ -98,6 +97,8 @@ def validate_devbox_manifest(payload: dict, errors: list[str], manifest_path: Pa
             step_kind = step.get("kind")
             if step_kind not in DEVBOX_RUNTIME_KINDS:
                 errors.append(f"{manifest_path}: runtime[{index}].kind must be stage_secret, update, or command")
+            if step_kind in ("update", "command"):
+                require_non_empty_string(step.get("command"), f"runtime[{index}].command", errors, manifest_path)
             if step_kind == "stage_secret":
                 secrets = step.get("secrets")
                 if not isinstance(secrets, list):
@@ -115,6 +116,25 @@ def validate_devbox_manifest(payload: dict, errors: list[str], manifest_path: Pa
     terminal = require_mapping(payload.get("terminal"), "terminal", errors, manifest_path)
     for field in ("tmux_session", "command"):
         require_non_empty_string(terminal.get(field), f"terminal.{field}", errors, manifest_path)
+
+    if payload.get("app") is not None:
+        app = require_mapping(payload.get("app"), "app", errors, manifest_path)
+        port = app.get("port")
+        if isinstance(port, bool) or not isinstance(port, int):
+            errors.append(f"{manifest_path}: app.port must be an integer")
+        if "health_path" in app:
+            health_path = app.get("health_path")
+            if not isinstance(health_path, str) or not health_path.strip() or not health_path.startswith("/"):
+                errors.append(f"{manifest_path}: app.health_path must be a non-empty string starting with /")
+
+    if "egress" in payload:
+        egress = require_mapping(payload.get("egress"), "egress", errors, manifest_path)
+        allow_domains = egress.get("allow_domains")
+        if not isinstance(allow_domains, list):
+            errors.append(f"{manifest_path}: egress.allow_domains must be an array")
+        else:
+            for domain_index, domain in enumerate(allow_domains):
+                require_non_empty_string(domain, f"egress.allow_domains[{domain_index}]", errors, manifest_path)
 
     if "ttl" in payload:
         errors.append(f"{manifest_path}: ttl is not supported")
