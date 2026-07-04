@@ -21,8 +21,26 @@ REQUIRED_TOP_LEVEL = {
     "secrets",
     "post_deploy_notes",
 }
+DEVBOX_REQUIRED_TOP_LEVEL = {
+    "schema_version",
+    "kind",
+    "slug",
+    "name",
+    "version",
+    "description",
+    "audience",
+    "icon",
+    "source_repo",
+    "vm",
+    "build",
+    "runtime",
+    "terminal",
+    "app",
+    "egress",
+}
 SUPPORTED_SCHEMA_VERSIONS = {1, 2}
-SUPPORTED_KINDS = {"service", "cron", "job"}
+SUPPORTED_KINDS = {"service", "cron", "job", "devbox"}
+DEVBOX_RUNTIME_KINDS = {"stage_secret", "update", "command"}
 
 
 def require_mapping(value: object, field_name: str, errors: list[str], manifest_path: Path) -> dict:
@@ -32,11 +50,50 @@ def require_mapping(value: object, field_name: str, errors: list[str], manifest_
     return value
 
 
+def require_non_empty_string(value: object, field_name: str, errors: list[str], manifest_path: Path) -> None:
+    if not isinstance(value, str) or not value.strip():
+        errors.append(f"{manifest_path}: {field_name} must be a non-empty string")
+
+
+def iter_manifest_paths() -> list[Path]:
+    return sorted({*ROOT.glob("*/instavm.yaml"), *ROOT.glob("templates/*/instavm.yaml")})
+
+
+def validate_devbox_manifest(payload: dict, errors: list[str], manifest_path: Path) -> None:
+    build = payload.get("build")
+    if not isinstance(build, list):
+        errors.append(f"{manifest_path}: build must be an array")
+    else:
+        for index, step in enumerate(build):
+            if not isinstance(step, dict):
+                errors.append(f"{manifest_path}: build[{index}] must be an object")
+                continue
+            require_non_empty_string(step.get("command"), f"build[{index}].command", errors, manifest_path)
+
+    runtime = payload.get("runtime")
+    if not isinstance(runtime, list):
+        errors.append(f"{manifest_path}: runtime must be an array")
+    else:
+        for index, step in enumerate(runtime):
+            if not isinstance(step, dict):
+                errors.append(f"{manifest_path}: runtime[{index}] must be an object")
+                continue
+            if step.get("kind") not in DEVBOX_RUNTIME_KINDS:
+                errors.append(f"{manifest_path}: runtime[{index}].kind must be stage_secret, update, or command")
+
+    terminal = require_mapping(payload.get("terminal"), "terminal", errors, manifest_path)
+    for field in ("tmux_session", "command"):
+        require_non_empty_string(terminal.get(field), f"terminal.{field}", errors, manifest_path)
+
+    if "ttl" in payload:
+        errors.append(f"{manifest_path}: ttl is not supported")
+
+
 def main() -> int:
     errors: list[str] = []
     slugs: set[str] = set()
 
-    for manifest_path in sorted(ROOT.glob("*/instavm.yaml")):
+    for manifest_path in iter_manifest_paths():
         try:
             payload = yaml.safe_load(manifest_path.read_text(encoding="utf-8"))
         except Exception as exc:  # noqa: BLE001
@@ -47,7 +104,10 @@ def main() -> int:
             errors.append(f"{manifest_path}: manifest must be an object")
             continue
 
-        missing = sorted(REQUIRED_TOP_LEVEL - set(payload))
+        workload_kind = str(payload.get("kind") or "service").strip()
+        required_top_level = DEVBOX_REQUIRED_TOP_LEVEL if workload_kind == "devbox" else REQUIRED_TOP_LEVEL
+
+        missing = sorted(required_top_level - set(payload))
         if missing:
             errors.append(f"{manifest_path}: missing fields: {', '.join(missing)}")
             continue
@@ -64,11 +124,14 @@ def main() -> int:
         if schema_version not in SUPPORTED_SCHEMA_VERSIONS:
             errors.append(f"{manifest_path}: schema_version must be 1 or 2")
 
-        workload_kind = str(payload.get("kind") or "service").strip()
         if workload_kind not in SUPPORTED_KINDS:
-            errors.append(f"{manifest_path}: kind must be service, cron, or job")
+            errors.append(f"{manifest_path}: kind must be service, cron, job, or devbox")
         if schema_version == 1 and workload_kind != "service":
             errors.append(f"{manifest_path}: kind can only be service for schema_version 1")
+
+        if workload_kind == "devbox":
+            validate_devbox_manifest(payload, errors, manifest_path)
+            continue
 
         deploy = payload.get("deploy")
         kind = deploy.get("kind") if isinstance(deploy, dict) else None

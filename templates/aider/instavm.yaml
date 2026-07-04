@@ -1,0 +1,47 @@
+schema_version: 2
+kind: devbox
+slug: aider
+name: Aider
+version: "0.1.0"
+description: Run Aider in an empty workspace with optional model provider keys.
+audience: coding-agent
+icon: icon.svg
+source_repo: Aider-AI/aider
+vm:
+  memory_mb: 2048
+  vcpus: 2
+build:
+  - name: Install Aider
+    command: pip install aider-chat
+  - name: Create workspace
+    command: mkdir -p /root/workspace
+runtime:
+  - kind: stage_secret
+    name: Stage optional model provider keys
+    optional: true
+    secrets:
+      - name: OpenRouter API key
+        env_name: OPENROUTER_API_KEY
+        optional: true
+      - name: OpenAI API key
+        env_name: OPENAI_API_KEY
+        optional: true
+      - name: Anthropic API key
+        env_name: ANTHROPIC_API_KEY
+        optional: true
+      - name: DeepSeek API key
+        env_name: DEEPSEEK_API_KEY
+        optional: true
+terminal:
+  tmux_session: aider
+  command: aider
+  cwd: /root/workspace
+app: null
+egress:
+  allow_domains:
+    - openrouter.ai
+    - api.openai.com
+    - api.anthropic.com
+    - api.deepseek.com
+    - pypi.org
+    - files.pythonhosted.org
