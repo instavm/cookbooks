@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 import sys
 from pathlib import Path
 
@@ -40,7 +41,9 @@ DEVBOX_REQUIRED_TOP_LEVEL = {
 }
 SUPPORTED_SCHEMA_VERSIONS = {1, 2}
 SUPPORTED_KINDS = {"service", "cron", "job", "devbox"}
+SUPPORTED_DEVBOX_AUDIENCES = {"coding-agent", "chat-agent", "devbox"}
 DEVBOX_RUNTIME_KINDS = {"stage_secret", "update", "command"}
+ENV_NAME_RE = re.compile(r"^[A-Z][A-Z0-9_]{0,63}$")
 
 
 def require_mapping(value: object, field_name: str, errors: list[str], manifest_path: Path) -> dict:
@@ -55,11 +58,25 @@ def require_non_empty_string(value: object, field_name: str, errors: list[str], 
         errors.append(f"{manifest_path}: {field_name} must be a non-empty string")
 
 
+def validate_env_name(value: object, field_name: str, errors: list[str], manifest_path: Path) -> None:
+    if isinstance(value, str) and value.strip() and not ENV_NAME_RE.fullmatch(value):
+        errors.append(f"{manifest_path}: {field_name} must match ^[A-Z][A-Z0-9_]{{0,63}}$")
+
+
 def iter_manifest_paths() -> list[Path]:
     return sorted({*ROOT.glob("*/instavm.yaml"), *ROOT.glob("templates/*/instavm.yaml")})
 
 
 def validate_devbox_manifest(payload: dict, errors: list[str], manifest_path: Path) -> None:
+    audience = str(payload.get("audience") or "").strip()
+    if audience not in SUPPORTED_DEVBOX_AUDIENCES:
+        errors.append(f"{manifest_path}: audience must be coding-agent, chat-agent, or devbox")
+
+    icon = payload.get("icon")
+    require_non_empty_string(icon, "icon", errors, manifest_path)
+    if isinstance(icon, str) and icon.strip() and not (manifest_path.parent / icon).exists():
+        errors.append(f"{manifest_path}: icon file does not exist: {icon}")
+
     build = payload.get("build")
     if not isinstance(build, list):
         errors.append(f"{manifest_path}: build must be an array")
@@ -78,8 +95,22 @@ def validate_devbox_manifest(payload: dict, errors: list[str], manifest_path: Pa
             if not isinstance(step, dict):
                 errors.append(f"{manifest_path}: runtime[{index}] must be an object")
                 continue
-            if step.get("kind") not in DEVBOX_RUNTIME_KINDS:
+            step_kind = step.get("kind")
+            if step_kind not in DEVBOX_RUNTIME_KINDS:
                 errors.append(f"{manifest_path}: runtime[{index}].kind must be stage_secret, update, or command")
+            if step_kind == "stage_secret":
+                secrets = step.get("secrets")
+                if not isinstance(secrets, list):
+                    errors.append(f"{manifest_path}: runtime[{index}].secrets must be an array")
+                    continue
+                for secret_index, secret in enumerate(secrets):
+                    field_name = f"runtime[{index}].secrets[{secret_index}]"
+                    if not isinstance(secret, dict):
+                        errors.append(f"{manifest_path}: {field_name} must be an object")
+                        continue
+                    require_non_empty_string(secret.get("name"), f"{field_name}.name", errors, manifest_path)
+                    require_non_empty_string(secret.get("env_name"), f"{field_name}.env_name", errors, manifest_path)
+                    validate_env_name(secret.get("env_name"), f"{field_name}.env_name", errors, manifest_path)
 
     terminal = require_mapping(payload.get("terminal"), "terminal", errors, manifest_path)
     for field in ("tmux_session", "command"):
@@ -115,6 +146,8 @@ def main() -> int:
         slug = str(payload.get("slug") or "").strip()
         if not slug:
             errors.append(f"{manifest_path}: slug must be set")
+        elif slug != manifest_path.parent.name:
+            errors.append(f"{manifest_path}: slug must match directory name {manifest_path.parent.name}")
         elif slug in slugs:
             errors.append(f"{manifest_path}: duplicate slug {slug}")
         else:

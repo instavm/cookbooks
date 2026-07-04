@@ -38,6 +38,7 @@ app: null
 egress:
   allow_domains:
     - openrouter.ai
+    - catwalk.charm.sh
     - api.anthropic.com
     - api.openai.com
     - registry.npmjs.org

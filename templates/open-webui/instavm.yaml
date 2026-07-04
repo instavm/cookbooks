@@ -4,7 +4,7 @@ kind: devbox
 slug: open-webui
 name: Open WebUI
 version: "0.1.0"
-description: Run Open WebUI in a browser workspace with optional OpenAI or OpenRouter keys.
+description: Run Open WebUI in a browser workspace with an optional OpenAI-compatible API key.
 audience: chat-agent
 icon: icon.svg
 source_repo: open-webui/open-webui
@@ -12,8 +12,12 @@ vm:
   memory_mb: 4096
   vcpus: 2
 build:
+  - name: Install uv
+    command: python3 -m pip install --user uv
   - name: Install Open WebUI
-    command: pip install open-webui
+    command: /root/.local/bin/uv tool install --python 3.12 open-webui
+  - name: Add local bin to PATH
+    command: grep -qxF 'export PATH="/root/.local/bin:$PATH"' /root/.bashrc || echo 'export PATH="/root/.local/bin:$PATH"' >> /root/.bashrc
   - name: Create workspace
     command: mkdir -p /root/workspace
 runtime:
@@ -21,11 +25,8 @@ runtime:
     name: Stage optional provider keys
     optional: true
     secrets:
-      - name: OpenAI API key
+      - name: OpenAI-compatible API key
         env_name: OPENAI_API_KEY
-        optional: true
-      - name: OpenRouter API key
-        env_name: OPENROUTER_API_KEY
         optional: true
 terminal:
   tmux_session: open-webui
@@ -39,5 +40,7 @@ egress:
   allow_domains:
     - api.openai.com
     - openrouter.ai
+    - huggingface.co
+    - cdn-lfs.huggingface.co
     - pypi.org
     - files.pythonhosted.org

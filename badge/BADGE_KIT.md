@@ -8,6 +8,11 @@
 
 `<slug>` is assigned per tool.
 
+Hosted names:
+
+- `badge.svg` serves `run-in-instavm.svg`
+- `badge-dark.svg` serves `run-in-instavm-dark.svg`
+
 ## HTML with dark mode
 
 ```html
@@ -39,9 +44,15 @@ Please tell us if you want this removed or adjusted.
 | gemini-cli | google-gemini/gemini-cli |
 | codex | openai/codex |
 | goose | aaif-goose/goose |
-| librechat | danny-avila/LibreChat |
 | code-server | coder/code-server |
 | jupyter | jupyterlab/jupyterlab |
+| hermes | nousresearch/hermes-agent |
+
+Deferred or coming soon:
+
+| Slug | Repository |
+| --- | --- |
+| librechat | danny-avila/LibreChat |
 
 License review first:
 

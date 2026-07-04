@@ -4,9 +4,9 @@
   <rect x="0.5" y="0.5" width="33.5" height="19" rx="2.5" fill="#111827" stroke="#475569"/>
   <path d="M31 1h3v18h-3z" fill="#111827"/>
   <g font-family="Verdana,DejaVu Sans,sans-serif" font-size="11" text-anchor="middle">
-    <text x="17" y="15" fill="#000000" fill-opacity="0.35">iVM</text>
-    <text x="17" y="14" fill="#93c5fd">iVM</text>
-    <text x="85" y="15" fill="#000000" fill-opacity="0.35">Run in InstaVM</text>
-    <text x="85" y="14" fill="#f8fafc">Run in InstaVM</text>
+    <text x="17" y="15" textLength="21" fill="#000000" fill-opacity="0.35">iVM</text>
+    <text x="17" y="14" textLength="21" fill="#93c5fd">iVM</text>
+    <text x="85" y="15" textLength="87" fill="#000000" fill-opacity="0.35">Run in InstaVM</text>
+    <text x="85" y="14" textLength="87" fill="#f8fafc">Run in InstaVM</text>
   </g>
 </svg>

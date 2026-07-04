@@ -25,7 +25,7 @@ runtime:
         optional: true
 terminal:
   tmux_session: code-server
-  command: code-server --bind-addr 0.0.0.0:8080 /root/workspace
+  command: 'code-server --bind-addr 0.0.0.0:8080 --auth "$([ -n "${PASSWORD:-}" ] && echo password || echo none)" /root/workspace'
   cwd: /root/workspace
 app:
   port: 8080
@@ -34,4 +34,5 @@ app:
   query: "?folder=/root/workspace"
 egress:
   allow_domains:
+    # Controller decision: a general-purpose IDE devbox is the deliberate exception.
     - "*"
