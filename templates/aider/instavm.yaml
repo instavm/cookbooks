@@ -12,7 +12,7 @@ vm:
   vcpus: 2
 build:
   - name: Install Aider
-    command: pip install aider-chat
+    command: python3 -m pip install --break-system-packages aider-chat
   - name: Create workspace
     command: mkdir -p /root/workspace
 runtime:

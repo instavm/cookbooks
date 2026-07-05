@@ -12,7 +12,7 @@ vm:
   vcpus: 2
 build:
   - name: Install JupyterLab
-    command: pip install jupyterlab
+    command: python3 -m pip install --break-system-packages jupyterlab
   - name: Create workspace
     command: mkdir -p /root/workspace
 runtime: []

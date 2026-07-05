@@ -13,7 +13,7 @@ vm:
   vcpus: 2
 build:
   - name: Install uv
-    command: python3 -m pip install --user uv
+    command: python3 -m pip install --user --break-system-packages uv || python3 -m pip install --user uv
   - name: Install Open WebUI
     command: /root/.local/bin/uv tool install --python 3.12 open-webui
   - name: Add local bin to PATH
@@ -30,7 +30,7 @@ runtime:
         optional: true
 terminal:
   tmux_session: open-webui
-  command: open-webui serve --port 8080
+  command: /root/.local/bin/open-webui serve --port 8080
   cwd: /root/workspace
 app:
   port: 8080
