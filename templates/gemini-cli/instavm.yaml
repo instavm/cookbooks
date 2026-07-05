@@ -5,7 +5,7 @@ name: Gemini CLI
 version: "0.1.0"
 description: Run Gemini CLI in an empty workspace with an optional Gemini API key.
 audience: coding-agent
-icon: icon.svg
+icon: https://dashboard.instavm.io/template-icons/gemini-cli.svg
 source_repo: google-gemini/gemini-cli
 vm:
   memory_mb: 2048

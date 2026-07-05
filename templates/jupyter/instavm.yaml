@@ -5,7 +5,7 @@ name: JupyterLab
 version: "0.1.0"
 description: Run JupyterLab in a browser workspace backed by an InstaVM devbox.
 audience: devbox
-icon: icon.svg
+icon: https://dashboard.instavm.io/template-icons/jupyter.svg
 source_repo: jupyterlab/jupyterlab
 vm:
   memory_mb: 4096

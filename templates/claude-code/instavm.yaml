@@ -5,7 +5,7 @@ name: Claude Code
 version: "0.1.0"
 description: Run Claude Code in an empty workspace with an optional Anthropic API key.
 audience: coding-agent
-icon: icon.svg
+icon: https://dashboard.instavm.io/template-icons/claude-code.svg
 source_repo: anthropics/claude-code
 vm:
   memory_mb: 2048

@@ -5,7 +5,7 @@ name: OpenCode
 version: "0.1.0"
 description: Run OpenCode in an empty workspace with optional model provider keys.
 audience: coding-agent
-icon: icon.svg
+icon: https://dashboard.instavm.io/template-icons/opencode.svg
 source_repo: anomalyco/opencode
 vm:
   memory_mb: 2048

@@ -5,7 +5,7 @@ name: Hermes
 version: "0.1.0"
 description: Run Hermes chat in an empty workspace with an optional OpenAI API key.
 audience: chat-agent
-icon: icon.svg
+icon: https://dashboard.instavm.io/template-icons/hermes.png
 source_repo: nousresearch/hermes-agent
 vm:
   memory_mb: 2048

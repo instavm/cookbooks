@@ -73,7 +73,14 @@ def validate_devbox_manifest(payload: dict, errors: list[str], manifest_path: Pa
 
     icon = payload.get("icon")
     require_non_empty_string(icon, "icon", errors, manifest_path)
-    if isinstance(icon, str) and icon.strip() and not (manifest_path.parent / icon).exists():
+    if (
+        isinstance(icon, str)
+        and icon.strip()
+        # Hosted icons (catalog serves icon URLs, e.g. the dashboard's
+        # /template-icons/) are referenced by https URL, not a local file.
+        and not icon.startswith(("http://", "https://"))
+        and not (manifest_path.parent / icon).exists()
+    ):
         errors.append(f"{manifest_path}: icon file does not exist: {icon}")
 
     build = payload.get("build")

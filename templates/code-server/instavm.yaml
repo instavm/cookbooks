@@ -5,7 +5,7 @@ name: code-server
 version: "0.1.0"
 description: Run code-server in a browser workspace with optional password auth.
 audience: devbox
-icon: icon.svg
+icon: https://dashboard.instavm.io/template-icons/code-server.svg
 source_repo: coder/code-server
 vm:
   memory_mb: 4096

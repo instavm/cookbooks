@@ -6,7 +6,7 @@ name: Crush
 version: "0.1.0"
 description: Run Crush in an empty workspace with optional model provider keys.
 audience: coding-agent
-icon: icon.svg
+icon: https://dashboard.instavm.io/template-icons/crush.png
 source_repo: charmbracelet/crush
 vm:
   memory_mb: 2048

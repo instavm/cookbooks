@@ -5,7 +5,7 @@ name: Codex
 version: "0.1.0"
 description: Run Codex in an empty workspace with an optional OpenAI API key.
 audience: coding-agent
-icon: icon.svg
+icon: https://dashboard.instavm.io/template-icons/codex.png
 source_repo: openai/codex
 vm:
   memory_mb: 2048

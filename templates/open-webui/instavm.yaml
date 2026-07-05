@@ -6,7 +6,7 @@ name: Open WebUI
 version: "0.1.0"
 description: Run Open WebUI in a browser workspace with an optional OpenAI-compatible API key.
 audience: chat-agent
-icon: icon.svg
+icon: https://dashboard.instavm.io/template-icons/open-webui.png
 source_repo: open-webui/open-webui
 vm:
   memory_mb: 4096
