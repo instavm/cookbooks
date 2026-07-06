@@ -32,8 +32,4 @@ terminal:
 app: null
 egress:
   allow_domains:
-    - api.anthropic.com
-    - claude.ai
-    - downloads.claude.ai
-    - statsig.anthropic.com
-    - sentry.io
+    - "*"

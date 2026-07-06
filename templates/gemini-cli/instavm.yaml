@@ -30,5 +30,4 @@ terminal:
 app: null
 egress:
   allow_domains:
-    - generativelanguage.googleapis.com
-    - registry.npmjs.org
+    - "*"

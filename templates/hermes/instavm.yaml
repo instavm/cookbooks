@@ -36,10 +36,4 @@ terminal:
 app: null
 egress:
   allow_domains:
-    - api.openai.com
-    - github.com
-    - objects.githubusercontent.com
-    - pypi.org
-    - files.pythonhosted.org
-    - deb.debian.org
-    - security.debian.org
+    - "*"

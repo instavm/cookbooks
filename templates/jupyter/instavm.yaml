@@ -29,5 +29,4 @@ app:
   share: public
 egress:
   allow_domains:
-    - pypi.org
-    - files.pythonhosted.org
+    - "*"

@@ -42,9 +42,4 @@ terminal:
 app: null
 egress:
   allow_domains:
-    - openrouter.ai
-    - api.openai.com
-    - api.anthropic.com
-    - api.deepseek.com
-    - pypi.org
-    - files.pythonhosted.org
+    - "*"

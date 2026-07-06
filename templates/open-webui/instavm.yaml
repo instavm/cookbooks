@@ -15,7 +15,11 @@ build:
   - name: Install uv
     command: python3 -m pip install --user --break-system-packages uv || python3 -m pip install --user uv
   - name: Install Open WebUI
-    command: /root/.local/bin/uv tool install --python 3.12 open-webui
+    # CPU-only torch: the default PyPI torch drags ~7GB of CUDA wheels the
+    # microVM cannot use, tripling the snapshot (11GB vs ~4GB) and making
+    # restores slow enough to time out. The cpu index's +cpu builds win
+    # resolution under unsafe-best-match (PEP 440 local version ordering).
+    command: /root/.local/bin/uv tool install --python 3.12 --index https://download.pytorch.org/whl/cpu --index-strategy unsafe-best-match open-webui
   - name: Add local bin to PATH
     command: grep -qxF 'export PATH="/root/.local/bin:$PATH"' /root/.bashrc || echo 'export PATH="/root/.local/bin:$PATH"' >> /root/.bashrc
   - name: Create workspace
@@ -38,9 +42,4 @@ app:
   share: public
 egress:
   allow_domains:
-    - api.openai.com
-    - openrouter.ai
-    - huggingface.co
-    - cdn-lfs.huggingface.co
-    - pypi.org
-    - files.pythonhosted.org
+    - "*"

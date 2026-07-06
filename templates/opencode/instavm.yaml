@@ -43,8 +43,4 @@ terminal:
 app: null
 egress:
   allow_domains:
-    - openrouter.ai
-    - models.dev
-    - api.anthropic.com
-    - api.openai.com
-    - registry.npmjs.org
+    - "*"

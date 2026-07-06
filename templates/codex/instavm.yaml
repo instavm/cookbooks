@@ -30,7 +30,4 @@ terminal:
 app: null
 egress:
   allow_domains:
-    - api.openai.com
-    - auth.openai.com
-    - registry.npmjs.org
-    - chatgpt.com
+    - "*"

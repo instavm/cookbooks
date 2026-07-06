@@ -41,11 +41,4 @@ terminal:
 app: null
 egress:
   allow_domains:
-    - api.openai.com
-    - api.anthropic.com
-    - openrouter.ai
-    - generativelanguage.googleapis.com
-    - github.com
-    - api.github.com
-    - objects.githubusercontent.com
-    - release-assets.githubusercontent.com
+    - "*"

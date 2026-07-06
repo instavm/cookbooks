@@ -36,9 +36,4 @@ terminal:
 app: null
 egress:
   allow_domains:
-    - openrouter.ai
-    - app.cline.bot
-    - api.cline.bot
-    - api.anthropic.com
-    - api.openai.com
-    - registry.npmjs.org
+    - "*"
