@@ -30,6 +30,9 @@ runtime:
       - name: OpenAI API key
         env_name: OPENAI_API_KEY
         optional: true
+      - name: Google Gemini API key
+        env_name: GEMINI_API_KEY
+        optional: true
 terminal:
   tmux_session: crush
   command: crush

@@ -32,6 +32,9 @@ runtime:
       - name: DeepSeek API key
         env_name: DEEPSEEK_API_KEY
         optional: true
+      - name: Google Gemini API key
+        env_name: GEMINI_API_KEY
+        optional: true
 terminal:
   tmux_session: aider
   command: aider
