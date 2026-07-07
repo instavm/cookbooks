@@ -21,7 +21,10 @@ terminal:
   # Behind the public share proxy the XSRF cookie/argument round-trip breaks
   # ("'_xsrf' argument missing from POST" on kernel start), so XSRF checking
   # is disabled; auth is already token-less inside the isolated sandbox.
-  command: "jupyter lab --ip=0.0.0.0 --port=8888 --allow-root --IdentityProvider.token='' --ServerApp.disable_check_xsrf=True --ServerApp.allow_origin='*' --notebook-dir=/root/workspace"
+  # allow_remote_access lets the kernel-channel WebSocket accept the proxied
+  # Host header (the public share domain); without it Jupyter rejects the WS
+  # upgrade and the kernel stays "Connecting".
+  command: "jupyter lab --ip=0.0.0.0 --port=8888 --allow-root --IdentityProvider.token='' --ServerApp.disable_check_xsrf=True --ServerApp.allow_origin='*' --ServerApp.allow_remote_access=True --notebook-dir=/root/workspace"
   cwd: /root/workspace
 app:
   port: 8888
