@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Gemini CLI devbox icon">
+  <rect width="64" height="64" rx="14" fill="#0f172a"/>
+  <path d="M32 10l5 17 17 5-17 5-5 17-5-17-17-5 17-5z" fill="#60a5fa" opacity="0.9"/>
+  <text x="32" y="38" text-anchor="middle" font-family="Verdana,DejaVu Sans,sans-serif" font-size="15" font-weight="700" fill="#f8fafc">G</text>
+</svg>

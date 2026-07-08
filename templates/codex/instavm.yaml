@@ -1,0 +1,38 @@
+schema_version: 2
+kind: devbox
+slug: codex
+name: Codex
+version: "0.1.0"
+description: Run Codex in an empty workspace with an optional OpenAI API key.
+audience: coding-agent
+icon: https://dashboard.instavm.io/template-icons/codex.png
+source_repo: openai/codex
+vm:
+  memory_mb: 2048
+  vcpus: 2
+build:
+  - name: Install Codex
+    command: npm install -g @openai/codex
+  - name: Create workspace
+    command: mkdir -p /root/workspace
+runtime:
+  - kind: stage_secret
+    name: Stage optional OpenAI key
+    optional: true
+    secrets:
+      - name: OpenAI API key
+        env_name: OPENAI_API_KEY
+        optional: true
+terminal:
+  tmux_session: codex
+  command: codex
+  cwd: /root/workspace
+app: null
+egress:
+  allow_domains:
+    - "*"
+  allowed_cidrs:
+    - 0.0.0.0/0
+  allow_http: true
+  allow_https: true
+  allow_package_managers: true

@@ -1,0 +1,40 @@
+schema_version: 2
+kind: devbox
+slug: jupyter
+name: JupyterLab
+version: "0.1.0"
+description: Run JupyterLab in a browser workspace backed by an InstaVM devbox.
+audience: devbox
+icon: https://dashboard.instavm.io/template-icons/jupyter.svg
+source_repo: jupyterlab/jupyterlab
+vm:
+  memory_mb: 4096
+  vcpus: 2
+build:
+  - name: Install JupyterLab
+    command: python3 -m pip install --break-system-packages jupyterlab
+  - name: Create workspace
+    command: mkdir -p /root/workspace
+runtime: []
+terminal:
+  tmux_session: jupyter
+  # Behind the public share proxy the XSRF cookie/argument round-trip breaks
+  # ("'_xsrf' argument missing from POST" on kernel start), so XSRF checking
+  # is disabled; auth is already token-less inside the isolated sandbox.
+  # allow_remote_access lets the kernel-channel WebSocket accept the proxied
+  # Host header (the public share domain); without it Jupyter rejects the WS
+  # upgrade and the kernel stays "Connecting".
+  command: "jupyter lab --ip=0.0.0.0 --port=8888 --allow-root --IdentityProvider.token='' --ServerApp.disable_check_xsrf=True --ServerApp.allow_origin='*' --ServerApp.allow_remote_access=True --notebook-dir=/root/workspace"
+  cwd: /root/workspace
+app:
+  port: 8888
+  health_path: "/api"
+  share: public
+egress:
+  allow_domains:
+    - "*"
+  allowed_cidrs:
+    - 0.0.0.0/0
+  allow_http: true
+  allow_https: true
+  allow_package_managers: true

@@ -1,0 +1,50 @@
+# NOTE: license review before badge PR
+schema_version: 2
+kind: devbox
+slug: open-webui
+name: Open WebUI
+version: "0.1.0"
+description: Run Open WebUI in a browser workspace with an optional OpenAI-compatible API key.
+audience: chat-agent
+icon: https://dashboard.instavm.io/template-icons/open-webui.png
+source_repo: open-webui/open-webui
+vm:
+  memory_mb: 4096
+  vcpus: 2
+build:
+  - name: Install uv
+    command: python3 -m pip install --user --break-system-packages uv || python3 -m pip install --user uv
+  - name: Install Open WebUI
+    # CPU-only torch: the default PyPI torch drags ~7GB of CUDA wheels the
+    # microVM cannot use, tripling the snapshot (11GB vs ~4GB) and making
+    # restores slow enough to time out. The cpu index's +cpu builds win
+    # resolution under unsafe-best-match (PEP 440 local version ordering).
+    command: /root/.local/bin/uv tool install --python 3.12 --index https://download.pytorch.org/whl/cpu --index-strategy unsafe-best-match open-webui
+  - name: Add local bin to PATH
+    command: grep -qxF 'export PATH="/root/.local/bin:$PATH"' /root/.bashrc || echo 'export PATH="/root/.local/bin:$PATH"' >> /root/.bashrc
+  - name: Create workspace
+    command: mkdir -p /root/workspace
+runtime:
+  - kind: stage_secret
+    name: Stage optional provider keys
+    optional: true
+    secrets:
+      - name: OpenAI-compatible API key
+        env_name: OPENAI_API_KEY
+        optional: true
+terminal:
+  tmux_session: open-webui
+  command: /root/.local/bin/open-webui serve --port 8080
+  cwd: /root/workspace
+app:
+  port: 8080
+  health_path: "/health"
+  share: public
+egress:
+  allow_domains:
+    - "*"
+  allowed_cidrs:
+    - 0.0.0.0/0
+  allow_http: true
+  allow_https: true
+  allow_package_managers: true
