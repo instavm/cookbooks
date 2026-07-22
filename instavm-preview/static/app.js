@@ -1,4 +1,4 @@
-import * as store from "./history.js?v=20260722n";
+import * as store from "./history.js?v=20260722o";
 
 const state = {
   config: null,
