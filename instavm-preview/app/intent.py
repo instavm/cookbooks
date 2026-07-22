@@ -5,6 +5,8 @@ from __future__ import annotations
 import re
 from typing import Literal
 
+from .template_resolve import match_template_slug
+
 Intent = Literal["ops", "webapp"]
 
 _OPS_RE = re.compile(
@@ -51,7 +53,7 @@ def classify_intent(prompt: str, *, has_ops_context: bool = False) -> Intent:
     if not text:
         return "webapp"
 
-    ops = bool(_OPS_RE.search(text))
+    ops = bool(_OPS_RE.search(text)) or bool(match_template_slug(text))
     web = bool(_WEBAPP_RE.search(text))
 
     # Follow-ups like "suspend this" / "resume it" while in an ops conversation

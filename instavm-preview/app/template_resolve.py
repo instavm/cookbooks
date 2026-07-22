@@ -28,6 +28,20 @@ _TEMPLATE_ALIASES: list[tuple[str, tuple[str, ...]]] = [
 ]
 
 _KNOWN_SLUGS = frozenset(slug for slug, _ in _TEMPLATE_ALIASES)
+
+# Ambiguous brand tokens: a template only when an explicit sandbox/devbox
+# context is present. Keeps app prompts ("build a claude chatbot landing
+# page") as web-app builds while catching "give me a claude sandbox".
+_CONTEXT_BRANDS: list[tuple[str, tuple[str, ...]]] = [
+    ("claude-code", ("claude",)),
+    ("gemini-cli", ("gemini",)),
+    ("cursor-cli", ("cursor",)),
+]
+_INFRA_CONTEXT_RE = re.compile(
+    r"(?i)\b(sandbox|micro\s*vm|vm|devbox|session|environment|instance|"
+    r"workspace|shell|terminal|spin\s*up|boot|provision|launch)\b"
+)
+
 _PTY_SHELLS = frozenset({"sh", "bash", "zsh", "dash", "ash", "fish", "ksh", "csh", "tcsh"})
 _TERM_SAFE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._+-]*$")
 
@@ -80,6 +94,14 @@ def match_template_slug(prompt: str) -> str | None:
         for alias in singles:
             if _alias_in_text(text, alias):
                 return slug
+
+    # 4) Bare brand token in a sandbox/devbox context ("give me a claude
+    #    sandbox", "spin up claude"). Gated so web-app prompts don't match.
+    if _INFRA_CONTEXT_RE.search(text):
+        for slug, aliases in _CONTEXT_BRANDS:
+            for alias in aliases:
+                if _alias_in_text(text, alias):
+                    return slug
     return None
 
 
