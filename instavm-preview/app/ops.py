@@ -292,9 +292,11 @@ def _client():
     from instavm import InstaVM
 
     key = (os.environ.get("INSTAVM_API_KEY") or "").strip()
+    # `timeout` doubles as HTTP timeout and vm_lifetime_seconds on start_session.
+    # Keep it long enough for interactive PTY; short lifetimes kill the shell mid-session.
     return InstaVM(
         api_key=key,
-        timeout=180,
+        timeout=1800,
         memory_mb=1024,
         cpu_count=1,
         auto_start_session=False,
@@ -304,16 +306,7 @@ def _client():
 def _resolve_vm_id(client: Any, session_id: str | None) -> str | None:
     if not session_id:
         return None
-    try:
-        info = client.get_session_info(session_id)
-        if not isinstance(info, dict):
-            return None
-        for key in ("vm_id", "microvm_id", "sandbox_id"):
-            val = info.get(key)
-            if val:
-                return str(val)
-    except Exception:
-        logger.exception("get_session_info failed for %s", session_id)
+    # Prefer /status — session info often has no vm_id until later.
     try:
         status = client.get_session_status(session_id)
         if isinstance(status, dict):
@@ -323,7 +316,101 @@ def _resolve_vm_id(client: Any, session_id: str | None) -> str | None:
                     return str(val)
     except Exception:
         logger.debug("get_session_status failed for %s", session_id, exc_info=True)
+    try:
+        info = client.get_session_info(session_id)
+        if isinstance(info, dict):
+            for key in ("vm_id", "microvm_id", "sandbox_id"):
+                val = info.get(key)
+                if val:
+                    return str(val)
+    except Exception:
+        logger.exception("get_session_info failed for %s", session_id)
     return None
+
+
+def _pty_transient_auth_error(exc: BaseException) -> bool:
+    """Guest agent 401s (missing agent token) are mapped by the SDK to auth errors."""
+    text = str(exc).lower()
+    return any(
+        needle in text
+        for needle in (
+            "invalid api key",
+            "session expired",
+            "invalid or missing token",
+            "authentication",
+            "401",
+        )
+    )
+
+
+async def _create_pty(
+    client: Any, *, session_id: str | None, vm_id: str | None
+) -> tuple[str, str, str | None]:
+    """Create a PTY; retry guest-agent auth races; prefer VM route then session route.
+
+    Returns (pty_id, upstream_ws_url, vm_id_used).
+    """
+    vid = vm_id
+    sid = session_id
+    last_exc: BaseException | None = None
+
+    for attempt in range(10):
+        if sid and not vid:
+            vid = await _wait_for_vm_id(client, sid, attempts=3, delay_s=0.4)
+        elif sid and attempt > 0:
+            refreshed = await asyncio.to_thread(_resolve_vm_id, client, sid)
+            if refreshed:
+                vid = refreshed
+
+        try:
+            if vid:
+                pty = await asyncio.to_thread(client.pty.create_for_vm, vid, 100, 32)
+                pty_id = str(
+                    (pty or {}).get("session_id") or (pty or {}).get("id") or ""
+                )
+                if not pty_id:
+                    raise RuntimeError("PTY create returned no id.")
+                upstream = client.pty.ws_url_for_vm(vid, pty_id)
+                return pty_id, upstream, vid
+            if sid:
+                pty = await asyncio.to_thread(client.pty.create, sid, 100, 32)
+                pty_id = str(
+                    (pty or {}).get("session_id") or (pty or {}).get("id") or ""
+                )
+                if not pty_id:
+                    raise RuntimeError("PTY create returned no id.")
+                upstream = client.pty.ws_url(sid, pty_id)
+                return pty_id, upstream, vid
+            raise RuntimeError("No sandbox/VM for terminal.")
+        except Exception as exc:
+            last_exc = exc
+            if attempt < 9 and _pty_transient_auth_error(exc):
+                logger.warning(
+                    "PTY create attempt %s failed (%s); retrying for guest agent readiness",
+                    attempt + 1,
+                    exc,
+                )
+                await asyncio.sleep(min(0.5 * (attempt + 1), 3.0))
+                continue
+            # Fall back once from VM-scoped to session-scoped before giving up.
+            if vid and sid and attempt < 9:
+                try:
+                    pty = await asyncio.to_thread(client.pty.create, sid, 100, 32)
+                    pty_id = str(
+                        (pty or {}).get("session_id") or (pty or {}).get("id") or ""
+                    )
+                    if pty_id:
+                        upstream = client.pty.ws_url(sid, pty_id)
+                        return pty_id, upstream, vid
+                except Exception as fallback_exc:
+                    last_exc = fallback_exc
+                    if _pty_transient_auth_error(fallback_exc):
+                        await asyncio.sleep(min(0.5 * (attempt + 1), 3.0))
+                        continue
+            break
+
+    assert last_exc is not None
+    raise last_exc
 
 
 async def _wait_for_vm_id(
@@ -508,31 +595,9 @@ async def ops_stream(
                         vid = await _wait_for_vm_id(client, sid)
                     if not vid and not sid:
                         raise RuntimeError("No sandbox/VM for terminal.")
-                    # Dash pattern: VM-scoped PTY when possible (more reliable).
-                    if vid:
-                        pty = await asyncio.to_thread(
-                            client.pty.create_for_vm, vid, 100, 32
-                        )
-                        pty_id = str(
-                            (pty or {}).get("session_id")
-                            or (pty or {}).get("id")
-                            or ""
-                        )
-                        if not pty_id:
-                            raise RuntimeError("PTY create returned no id.")
-                        upstream = client.pty.ws_url_for_vm(vid, pty_id)
-                    else:
-                        pty = await asyncio.to_thread(
-                            client.pty.create, sid, 100, 32
-                        )
-                        pty_id = str(
-                            (pty or {}).get("session_id")
-                            or (pty or {}).get("id")
-                            or ""
-                        )
-                        if not pty_id:
-                            raise RuntimeError("PTY create returned no id.")
-                        upstream = client.pty.ws_url(sid, pty_id)
+                    pty_id, upstream, vid = await _create_pty(
+                        client, session_id=sid, vm_id=vid
+                    )
                     token = ops_registry.register(
                         guest_id=guest_id,
                         session_id=sid,
