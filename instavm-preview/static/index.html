@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>InstaVM Preview</title>
+    <meta
+      name="description"
+      content="Describe a small web app. It builds in a Firecracker microVM and returns a live URL."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&family=Source+Sans+3:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/static/styles.css?v=20260722n" />
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/@xterm/xterm@5.5.0/css/xterm.min.css"
+    />
+  </head>
+  <body>
+    <div class="shell">
+      <aside class="history" id="history" aria-label="Conversations">
+        <div class="history-top">
+          <button type="button" class="text-btn" id="new-chat">New build</button>
+          <button
+            type="button"
+            class="icon-btn"
+            id="toggle-history"
+            aria-label="Collapse conversations"
+            title="Collapse"
+          >
+            ‹
+          </button>
+        </div>
+        <p class="history-label mono">Conversations</p>
+        <div class="history-list" id="history-list"></div>
+        <p class="history-empty mono" id="history-empty">No builds yet</p>
+      </aside>
+
+      <button
+        type="button"
+        class="history-rail-open"
+        id="open-history"
+        aria-label="Open conversations"
+        hidden
+      >
+        ›
+      </button>
+
+      <button
+        type="button"
+        class="history-scrim"
+        id="history-scrim"
+        aria-label="Close conversations"
+        hidden
+      ></button>
+
+      <div class="shell-main">
+        <header class="top" id="site-header">
+          <a class="brand" href="/">
+            <span class="brand-word">InstaVM</span>
+            <span class="brand-product">Preview</span>
+          </a>
+          <nav class="top-meta">
+            <span class="quota mono" id="quota" hidden></span>
+            <a class="link" id="claim-link" href="https://dash.instavm.io/auth/signup">Account</a>
+            <a class="link" id="billing-link" href="https://dash.instavm.io/dashboard/usage">Pro</a>
+          </nav>
+        </header>
+
+        <main>
+          <section class="hero" id="hero">
+            <p class="lede">
+              Type what you want — or attach a screenshot and say build similar to
+              this. It runs inside an isolated microVM and comes back as a URL.
+            </p>
+
+            <form class="composer" id="build-form">
+              <label class="field-label mono" for="prompt">Prompt</label>
+              <textarea
+                id="prompt"
+                name="prompt"
+                rows="3"
+                maxlength="4000"
+                placeholder="Build similar to this — or describe a Hello World page with clean CSS"
+              ></textarea>
+              <div class="attach" id="attach-build">
+                <div class="attach-thumbs" id="attach-thumbs" hidden></div>
+                <div class="attach-row">
+                  <label class="text-btn attach-label" for="attach-input">
+                    Attach screenshot
+                    <input
+                      type="file"
+                      id="attach-input"
+                      accept="image/png,image/jpeg,image/webp,image/gif"
+                      multiple
+                      hidden
+                    />
+                  </label>
+                  <span class="hint mono" id="attach-hint">png · jpg · webp · paste ok</span>
+                </div>
+              </div>
+              <div class="composer-row">
+                <button type="submit" class="btn" id="build-btn">Build</button>
+                <p class="hint mono" id="hint"></p>
+              </div>
+            </form>
+
+            <section class="plan-panel" id="plan-panel" hidden>
+              <div class="plan-bar">
+                <span class="mono" id="plan-label">Plan</span>
+                <button type="button" class="text-btn" id="plan-discard">Discard</button>
+              </div>
+              <p class="plan-summary" id="plan-summary"></p>
+              <ul class="plan-todos" id="plan-todos" aria-label="Plan checklist"></ul>
+              <div class="plan-revise" id="plan-revise-box" hidden>
+                <label class="field-label mono" for="plan-feedback">Changes</label>
+                <textarea
+                  id="plan-feedback"
+                  rows="2"
+                  maxlength="2000"
+                  placeholder="e.g. skip the auth page — just a landing + form"
+                ></textarea>
+              </div>
+              <div class="plan-actions">
+                <button type="button" class="btn" id="plan-approve">Approve &amp; build</button>
+                <button type="button" class="btn btn-ghost" id="plan-revise-btn">Suggest changes</button>
+                <button type="button" class="btn btn-ghost" id="plan-update-btn" hidden>Update plan</button>
+              </div>
+            </section>
+
+            <div class="templates" id="templates" aria-label="Starters"></div>
+
+            <div class="ops-ticker" id="ops-ticker" hidden>
+              <span class="ops-ticker-kicker mono">sandbox</span>
+              <button
+                type="button"
+                class="ops-ticker-btn"
+                id="ops-ticker-btn"
+                aria-label="Try this sandbox command"
+              >
+                <span class="ops-ticker-text" id="ops-ticker-text"></span>
+              </button>
+            </div>
+          </section>
+
+          <section class="workspace" id="workspace" hidden>
+            <div class="stage-shell">
+              <div class="stage-bar">
+                <span class="mono" id="stage-label">Building</span>
+                <div class="stage-tools">
+                  <span class="usage mono" id="usage" hidden></span>
+                  <span class="ttl mono" id="ttl"></span>
+                  <button type="button" class="text-btn" id="copy-url" hidden>Copy URL</button>
+                  <a class="text-btn" id="open-preview" href="#" target="_blank" rel="noopener" hidden>Open</a>
+                </div>
+              </div>
+              <div class="stage" id="stage">
+                <div class="build-stream" id="build-stream" hidden>
+                  <div class="build-stream-head mono" id="build-stream-head">Starting…</div>
+                  <div class="progress progress-in-stage" id="phases" hidden></div>
+                  <div class="timeline timeline-in-stage" id="timeline" aria-label="Build log"></div>
+                  <pre class="ops-result mono" id="ops-result" hidden></pre>
+                </div>
+                <div class="pty-wrap" id="pty-wrap" hidden>
+                  <div id="pty-term" class="pty-term" aria-label="VM terminal"></div>
+                </div>
+                <iframe id="frame" title="Live preview" hidden sandbox="allow-scripts allow-same-origin allow-forms"></iframe>
+              </div>
+            </div>
+
+            <div class="rail">
+              <div class="convo-meta mono" id="convo-meta" hidden></div>
+              <form class="iterate" id="iterate-form" hidden>
+                <label class="field-label mono" for="iterate" id="iterate-label">Revise</label>
+                <textarea
+                  id="iterate"
+                  rows="2"
+                  maxlength="4000"
+                  placeholder="Make the title larger — or attach a shot and say match this"
+                ></textarea>
+                <div class="attach attach-compact">
+                  <div class="attach-thumbs" id="iterate-thumbs" hidden></div>
+                  <div class="attach-row">
+                    <label class="text-btn attach-label" for="iterate-attach-input">
+                      Attach
+                      <input
+                        type="file"
+                        id="iterate-attach-input"
+                        accept="image/png,image/jpeg,image/webp,image/gif"
+                        multiple
+                        hidden
+                      />
+                    </label>
+                  </div>
+                </div>
+                <button type="submit" class="btn btn-ghost" id="iterate-btn">Apply</button>
+              </form>
+            </div>
+          </section>
+
+          <p class="error mono" id="error" hidden></p>
+        </main>
+
+      </div>
+    </div>
+
+    <script src="/static/app.js?v=20260722n" type="module"></script>
+  </body>
+</html>
