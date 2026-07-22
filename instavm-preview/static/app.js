@@ -1,4 +1,4 @@
-import * as store from "./history.js?v=20260722o";
+import * as store from "./history.js?v=20260722p";
 
 const state = {
   config: null,
@@ -148,12 +148,17 @@ async function connectPty(ptyPath) {
 
   const term = new Terminal({
     cursorBlink: true,
-    fontFamily: 'var(--font-mono), "IBM Plex Mono", monospace',
-    fontSize: 13,
+    fontFamily:
+      '"JetBrains Mono", "IBM Plex Mono", "SF Mono", ui-monospace, monospace',
+    fontSize: 14,
+    fontWeight: "450",
+    lineHeight: 1.35,
+    letterSpacing: 0.3,
     theme: {
       background: "#0d0d0c",
       foreground: "#e8e8e3",
       cursor: "#e8e8e3",
+      selectionBackground: "#3a3a36",
     },
     convertEol: true,
     scrollback: 1000,

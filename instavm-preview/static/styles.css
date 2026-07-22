@@ -861,14 +861,22 @@ body.has-workspace:not(.is-streaming) .stage {
 .pty-term {
   width: 100%;
   height: 100%;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: geometricPrecision;
 }
 
 .pty-term .xterm {
   height: 100%;
+  font-variant-ligatures: none;
 }
 
 .pty-term .xterm-viewport {
   overflow-y: auto !important;
+}
+
+.pty-term .xterm-rows {
+  letter-spacing: 0.02em;
 }
 
 .ops-result {
