@@ -1,0 +1,53 @@
+schema_version: 1
+slug: instavm-preview
+title: InstaVM Preview
+version: "1.0.0"
+summary: Polished consumer Preview — describe a small web app, build it in a Firecracker microVM, open a live TLS URL. Guest quotas, iterate on the same sandbox, remix templates.
+category: agents
+runtime: python-fastapi
+deploy:
+  kind: upload_and_run
+vm:
+  memory_mb: 2048
+  vcpu_count: 2
+  timeout_seconds: 7200
+app:
+  port: 8000
+  healthcheck_path: /health
+  share_public_default: true
+  readiness_timeout_seconds: 240
+run:
+  workdir: .
+  start_command: >-
+    : "${OPENAI_API_KEY:=OPENAI_KEY}" &&
+    export OPENAI_API_KEY &&
+    : "${OPENAI_MODEL:=gpt-5.4-nano}" &&
+    export OPENAI_MODEL &&
+    python -m uvicorn app.main:app --host 0.0.0.0 --port 8000
+secrets:
+  - name: instavm_api_key
+    required: true
+    prompt: InstaVM API key (orchestrator spawns per-request preview microVMs)
+    env_name: INSTAVM_API_KEY
+vault:
+  required: true
+  hosts:
+    - api.openai.com
+post_deploy_notes:
+  - Open the share URL — that is the consumer Preview UI.
+  - Set PREVIEW_PUBLIC_ORIGIN to the public share origin so Remix footers link correctly.
+  - Optional: NEXT_PUBLIC_POSTHOG_KEY / NEXT_PUBLIC_POSTHOG_HOST for funnel analytics.
+  - Guest builds default to 5/day; override with PREVIEW_GUEST_BUILDS_PER_DAY.
+build:
+  context: .
+  dockerfile: Dockerfile
+source:
+  include:
+    - app/
+    - static/
+    - requirements.txt
+    - README.md
+    - Dockerfile
+    - instavm.yaml
+  exclude: []
+  setup_command: python -m pip install --no-cache-dir -r requirements.txt

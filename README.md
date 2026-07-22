@@ -107,13 +107,14 @@ Apply vault pattern to all recipes: `python3 scripts/apply_vault_pattern.py`
 
 ## Included Apps
 
+- [`instavm-preview`](instavm-preview/): consumer Preview — describe a small web app or sandbox ops prompt, build/run in a Firecracker microVM, open a live TLS URL or PTY. Guest quotas, iterate on the same sandbox, remix templates, and session/vm history in the sidebar.
 - [`hello-fastapi`](hello-fastapi/): a simple FastAPI app with a hello page and health endpoint.
 - [`neon-city-webgl`](neon-city-webgl/): immersive fullscreen WebGL cityscape with procedural towers and a looping robot pedestrian.
 - [`claude-simple-chatapp`](claude-simple-chatapp/): browser chat for Claude with a React frontend and live conversation threads.
 - [`openai-agents-js-chat`](openai-agents-js-chat/): streaming browser chat with tool calls, reasoning, and support handoffs.
 - [`openai-agents-python-research`](openai-agents-python-research/): newspaper-style deep research desk. The agent searches and reads the public web through a Chromium browser running on InstaVM and files a cited memo; the OpenAI key never enters the deployed VM (consumed from the org vault).
 - [`openai-agents-python-injection-scanner`](openai-agents-python-injection-scanner/): streaming prompt-injection scanner; runs adversarial tooling against an uploaded document inside a fresh, egress-locked InstaVM child sandbox. *First cookbook to use InstaVM as the OpenAI Agents SDK sandbox provider.*
-- [`openai-agents-python-vibe-preview`](openai-agents-python-vibe-preview/): describe a small web app, watch the agent build it inside a fresh InstaVM microVM, and click a live TLS preview URL backed by an InstaVM share.
+- [`openai-agents-python-vibe-preview`](openai-agents-python-vibe-preview/): demo predecessor of Preview — describe a small web app, watch the agent build it inside a fresh InstaVM microVM, and click a live TLS preview URL.
 - [`openai-agents-python-vault-demo`](openai-agents-python-vault-demo/): OpenAI Agents SDK on InstaVM with **no real OpenAI key in the orchestrator or in the sandbox**. The cookbook holds only `INSTAVM_API_KEY`; `OPENAI_API_KEY` is a literal placeholder string and the org-scoped InstaVM Vault rewrites it to the real value at TLS write time.
 - [`deep-research-exa`](deep-research-exa/): Exa-powered deep research agent using the OpenAI Agents SDK, Server-Sent Events, vault-backed OpenAI and Exa keys, and allowlisted egress.
 - [`vscode-microvm`](vscode-microvm/): VS Code in the browser via `coder/code-server` (Apache-2.0), running inside a Firecracker microVM. Edit code in the browser; everything executes in a real KVM VM with the same isolation, secrets, and audit posture as any other InstaVM workload.
@@ -122,7 +123,7 @@ Apply vault pattern to all recipes: `python3 scripts/apply_vault_pattern.py`
 
 ## Sandbox-provider cookbooks
 
-[`openai-agents-python-injection-scanner`](openai-agents-python-injection-scanner/) and [`openai-agents-python-vibe-preview`](openai-agents-python-vibe-preview/) are different from every other cookbook in this repo: instead of running the agent loop in the deployed VM and calling OpenAI directly, the deployed FastAPI app uses InstaVM as the OpenAI Agents SDK *sandbox provider*. Every request spawns a fresh, disposable child microVM via `InstaVMSandboxClient` where the agent's shell and file tools run.
+[`instavm-preview`](instavm-preview/), [`openai-agents-python-injection-scanner`](openai-agents-python-injection-scanner/), and [`openai-agents-python-vibe-preview`](openai-agents-python-vibe-preview/) use InstaVM as the OpenAI Agents SDK *sandbox provider* (or equivalent session/ops primitives). Child work runs in disposable Firecracker microVMs rather than on the orchestrator host.
 
 ```
 Browser -> Outer cookbook VM (orchestrator)
