@@ -80,6 +80,14 @@ TEMPLATES: list[Template] = [
 # Rotating prompt ideas for InstaVM client / sandbox ops (not web-app builds).
 OPS_EXAMPLES: list[OpsExample] = [
     {
+        "id": "claude-code",
+        "prompt": "create a sandbox with claude code template",
+    },
+    {
+        "id": "codex",
+        "prompt": "Launch the codex template and open a terminal",
+    },
+    {
         "id": "egress-star",
         "prompt": (
             "Create a sandbox with * allowlist so the VM can reach the public internet, "

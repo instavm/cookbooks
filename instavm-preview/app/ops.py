@@ -15,6 +15,11 @@ from . import config
 from . import ops_registry
 from .build import sse, validate_keys
 from .intent import classify_intent
+from .template_resolve import (
+    compose_pty_command,
+    match_template_slug,
+    resolve_slug_against_catalog,
+)
 
 logger = logging.getLogger("instavm_preview.ops")
 
@@ -26,6 +31,7 @@ _DOMAIN_RE = re.compile(
 _OPS = frozenset(
     {
         "create_session",
+        "run_template",
         "set_egress",
         "credits",
         "execute",
@@ -87,15 +93,28 @@ def _heuristic_actions(
             item["session_id"] = ctx_sid
         return [item]
 
+    template_slug = match_template_slug(text)
     wants_session = bool(
-        re.search(r"(?i)\b(create|start|spin\s*up|launch)\b.+\b(sandbox|session|vm)\b", lower)
+        re.search(r"(?i)\b(create|start|spin\s*up|launch)\b.+\b(sandbox|session|vm|devbox)\b", lower)
         or re.search(r"(?i)\bsandbox\s+with\b", lower)
+        or re.search(r"(?i)\b(open|launch|start|run)\b.+\b(template|devbox)\b", lower)
         or "start_session" in lower
+        or bool(template_slug)
     )
     wants_egress = bool(re.search(r"(?i)\begress|allow\s*-?\s*list|allowlist", lower))
 
     if wants_session or wants_egress:
-        actions.append({"op": "create_session", "label": "Create sandbox"})
+        if template_slug:
+            pretty = template_slug.replace("-", " ")
+            actions.append(
+                {
+                    "op": "run_template",
+                    "label": f"Launch {pretty} template",
+                    "slug": template_slug,
+                }
+            )
+        else:
+            actions.append({"op": "create_session", "label": "Create sandbox"})
 
     if wants_egress:
         domains = [d.lower() for d in _DOMAIN_RE.findall(text)]
@@ -170,7 +189,10 @@ def _heuristic_actions(
             },
         ]
 
-    if any(a["op"] == "create_session" for a in actions) and not _wants_cleanup(text):
+    if (
+        any(a["op"] in ("create_session", "run_template") for a in actions)
+        and not _wants_cleanup(text)
+    ):
         if not any(a["op"] == "open_pty" for a in actions):
             actions.append({"op": "open_pty", "label": "Open terminal"})
 
@@ -178,14 +200,20 @@ def _heuristic_actions(
 
 
 def _normalize_actions(actions: list[dict[str, Any]], prompt: str) -> list[dict[str, Any]]:
-    """Hard rules: never auto-kill; always open a terminal after create."""
+    """Hard rules: never auto-kill; always open a terminal after create/template."""
     out: list[dict[str, Any]] = []
     for a in actions:
         op = str(a.get("op") or "")
         if op == "cleanup" and not _wants_cleanup(prompt):
             continue
+        # Template launch replaces a bare create_session.
+        if op == "create_session" and any(x.get("op") == "run_template" for x in actions):
+            continue
         out.append(a)
-    if any(a.get("op") == "create_session" for a in out) and not _wants_cleanup(prompt):
+    if (
+        any(a.get("op") in ("create_session", "run_template") for a in out)
+        and not _wants_cleanup(prompt)
+    ):
         if not any(a.get("op") == "open_pty" for a in out):
             out.append({"op": "open_pty", "label": "Open terminal"})
     return out or [{"op": "open_pty", "label": "Open terminal"}]
@@ -197,9 +225,11 @@ def _prefer_heuristic(prompt: str) -> bool:
         re.search(
             r"(?is)\b(sandbox|allowlist|allow\s*-?\s*list|egress|suspend|resume|"
             r"list\s+(my\s+)?(current\s+)?vms?|create\s+(a\s+)?(session|vm)|"
-            r"open\s+(a\s+)?(terminal|shell|pty)|kill\s+(this|the)\s+(vm|sandbox))\b",
+            r"open\s+(a\s+)?(terminal|shell|pty)|kill\s+(this|the)\s+(vm|sandbox)|"
+            r"template|devbox|claude\s*code|codex|opencode)\b",
             prompt,
         )
+        or match_template_slug(prompt)
     )
 
 
@@ -211,7 +241,7 @@ async def extract_ops(
     heuristic = _normalize_actions(_heuristic_actions(prompt, context=ctx), prompt)
     summary = (
         "Sandbox ready"
-        if any(a["op"] == "create_session" for a in heuristic)
+        if any(a["op"] in ("create_session", "run_template") for a in heuristic)
         else "Running"
     )
 
@@ -238,13 +268,15 @@ async def extract_ops(
                         "Map natural language to InstaVM Python client ops. "
                         "Return ONLY JSON: "
                         '{"summary":"short human status","actions":[{"op":"…","label":"…",…}]}. '
-                        "Allowed op values: create_session, set_egress, credits, execute, "
-                        "open_pty, list_vms, suspend, resume, cleanup. "
+                        "Allowed op values: create_session, run_template, set_egress, credits, "
+                        "execute, open_pty, list_vms, suspend, resume, cleanup. "
                         "NOT a web-app build — never invent HTML/CSS todos. "
+                        "If the user names a platform template (claude-code, codex, opencode, "
+                        "jupyter, …) use run_template with slug=… — do NOT use bare create_session. "
                         "For '* allowlist' / allow all → open egress (http+https true, domains []). "
-                        "After create_session, include open_pty so the user gets a terminal. "
-                        "NEVER add cleanup/kill unless the user explicitly asked to stop/kill "
-                        "the VM/session. Keep sandboxes alive for follow-ups."
+                        "After create_session or run_template, include open_pty so the user gets a "
+                        "terminal. NEVER add cleanup/kill unless the user explicitly asked to "
+                        "stop/kill the VM/session. Keep sandboxes alive for follow-ups."
                         + ctx_note
                     ),
                 },
@@ -271,9 +303,17 @@ async def extract_ops(
                     "code",
                     "vm_id",
                     "session_id",
+                    "slug",
+                    "command",
                 ):
                     if k in a:
                         item[k] = a[k]
+                if op == "run_template" and not item.get("slug"):
+                    guessed = match_template_slug(prompt)
+                    if guessed:
+                        item["slug"] = guessed
+                    else:
+                        continue
                 cleaned.append(item)
             cleaned = _normalize_actions(cleaned, prompt)
             if cleaned:
@@ -344,7 +384,11 @@ def _pty_transient_auth_error(exc: BaseException) -> bool:
 
 
 async def _create_pty(
-    client: Any, *, session_id: str | None, vm_id: str | None
+    client: Any,
+    *,
+    session_id: str | None,
+    vm_id: str | None,
+    command: str | None = None,
 ) -> tuple[str, str, str | None]:
     """Create a PTY; retry guest-agent auth races; prefer VM route then session route.
 
@@ -352,6 +396,7 @@ async def _create_pty(
     """
     vid = vm_id
     sid = session_id
+    cmd = (command or "").strip() or None
     last_exc: BaseException | None = None
 
     for attempt in range(10):
@@ -364,7 +409,9 @@ async def _create_pty(
 
         try:
             if vid:
-                pty = await asyncio.to_thread(client.pty.create_for_vm, vid, 100, 32)
+                pty = await asyncio.to_thread(
+                    client.pty.create_for_vm, vid, 100, 32, cmd
+                )
                 pty_id = str(
                     (pty or {}).get("session_id") or (pty or {}).get("id") or ""
                 )
@@ -373,7 +420,7 @@ async def _create_pty(
                 upstream = client.pty.ws_url_for_vm(vid, pty_id)
                 return pty_id, upstream, vid
             if sid:
-                pty = await asyncio.to_thread(client.pty.create, sid, 100, 32)
+                pty = await asyncio.to_thread(client.pty.create, sid, 100, 32, cmd)
                 pty_id = str(
                     (pty or {}).get("session_id") or (pty or {}).get("id") or ""
                 )
@@ -395,7 +442,7 @@ async def _create_pty(
             # Fall back once from VM-scoped to session-scoped before giving up.
             if vid and sid and attempt < 9:
                 try:
-                    pty = await asyncio.to_thread(client.pty.create, sid, 100, 32)
+                    pty = await asyncio.to_thread(client.pty.create, sid, 100, 32, cmd)
                     pty_id = str(
                         (pty or {}).get("session_id") or (pty or {}).get("id") or ""
                     )
@@ -477,6 +524,7 @@ async def ops_stream(
     vid: str | None = context["vm_id"]
     pty_id: str | None = None
     pty_path: str | None = None
+    pty_command: str | None = None
 
     try:
         validate_keys()
@@ -504,6 +552,64 @@ async def ops_stream(
                     yield sse(
                         "status",
                         {"message": f"Sandbox created · {vid}"},
+                    )
+
+                elif op == "run_template":
+                    slug = str(action.get("slug") or "").strip()
+                    if not slug:
+                        raise RuntimeError("No template slug.")
+                    try:
+                        catalog = await asyncio.to_thread(client.templates.list)
+                        if isinstance(catalog, list):
+                            slug = resolve_slug_against_catalog(slug, catalog)
+                    except Exception:
+                        logger.debug("template catalog lookup failed", exc_info=True)
+                    yield sse("status", {"message": f"Starting template {slug}…"})
+                    result = await asyncio.to_thread(
+                        client.templates.run,
+                        slug,
+                        vm_lifetime=1800,
+                    )
+                    if not isinstance(result, dict):
+                        raise RuntimeError(f"Unexpected template run response: {result!r}")
+                    sid = (
+                        str(result.get("session_id") or "").strip()
+                        or sid
+                        or None
+                    )
+                    vid = str(result.get("vm_id") or "").strip() or None
+                    if not vid and sid:
+                        yield sse("status", {"message": "Waiting for VM…"})
+                        vid = await _wait_for_vm_id(client, sid)
+                    if not vid:
+                        raise RuntimeError(
+                            f"Template {slug} started but no VM was assigned."
+                        )
+                    terminal = result.get("terminal")
+                    if not isinstance(terminal, dict):
+                        try:
+                            detail = await asyncio.to_thread(
+                                client.templates.get, slug
+                            )
+                            if isinstance(detail, dict):
+                                terminal = detail.get("terminal")
+                        except Exception:
+                            terminal = None
+                    pty_command = compose_pty_command(
+                        terminal if isinstance(terminal, dict) else None
+                    )
+                    yield sse(
+                        "session",
+                        {
+                            "session_id": sid,
+                            "guest_id": guest_id,
+                            "vm_id": vid,
+                            "template_slug": slug,
+                        },
+                    )
+                    yield sse(
+                        "status",
+                        {"message": f"Template {slug} ready · {vid}"},
                     )
 
                 elif op == "set_egress":
@@ -595,8 +701,13 @@ async def ops_stream(
                         vid = await _wait_for_vm_id(client, sid)
                     if not vid and not sid:
                         raise RuntimeError("No sandbox/VM for terminal.")
+                    cmd = (
+                        str(action.get("command") or "").strip()
+                        or pty_command
+                        or None
+                    )
                     pty_id, upstream, vid = await _create_pty(
-                        client, session_id=sid, vm_id=vid
+                        client, session_id=sid, vm_id=vid, command=cmd
                     )
                     token = ops_registry.register(
                         guest_id=guest_id,
@@ -614,13 +725,18 @@ async def ops_stream(
                         or sid
                         or client.session_id
                     )
-                    if not target_sid:
+                    target_vid = str(action.get("vm_id") or "").strip() or vid
+                    if target_sid:
+                        await asyncio.to_thread(client.kill, target_sid)
+                    elif target_vid:
+                        await asyncio.to_thread(client.vms.delete, target_vid)
+                    else:
                         raise RuntimeError("Nothing to stop.")
-                    await asyncio.to_thread(client.kill, target_sid)
                     sid = None
                     vid = None
                     pty_id = None
                     pty_path = None
+                    pty_command = None
                     yield sse("status", {"message": "Sandbox stopped"})
 
                 else:
